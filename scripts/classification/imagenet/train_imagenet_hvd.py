@@ -133,6 +133,8 @@ def main():
     context = [mx.gpu(hvd.local_rank())]
     num_workers = opt.num_workers
 
+    optimizer = opt.optimizer
+
     lr_decay = opt.lr_decay
     lr_decay_period = opt.lr_decay_period
     if opt.lr_decay_period > 0:
@@ -170,7 +172,6 @@ def main():
     if opt.last_gamma:
         kwargs['last_gamma'] = True
 
-    optimizer = opt.optimizer
     if 'adaalter' in optimizer or 'adagrad' in optimizer:
         optimizer_params = {'wd': opt.wd, 'lr_scheduler': lr_scheduler}
     else:
