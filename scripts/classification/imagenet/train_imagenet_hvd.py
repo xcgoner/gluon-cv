@@ -359,7 +359,7 @@ def main():
         # trainer = gluon.Trainer(net.collect_params(), optimizer, optimizer_params)
 
         trainer = hvd.DistributedTrainer(
-            net.collect_train_params(),  
+            net.collect_params(),  
             optimizer,
             optimizer_params)
 
