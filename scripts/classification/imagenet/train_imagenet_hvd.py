@@ -14,6 +14,8 @@ from gluoncv.utils import makedirs, LRSequential, LRScheduler
 
 import horovod.mxnet as hvd
 
+os.environ['MXNET_SAFE_ACCUMULATION'] = '1'
+
 # CLI
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a model for image classification.')
