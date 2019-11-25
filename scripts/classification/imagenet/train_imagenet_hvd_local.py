@@ -142,19 +142,15 @@ def main():
     lr_decay_epoch = [e - opt.warmup_epochs for e in lr_decay_epoch]
     num_batches = num_training_samples // batch_size
 
-    if 'adaalter' in optimizer or 'adagrad' in optimizer:
-        lr_scheduler = LRScheduler('linear', base_lr=0, target_lr=opt.lr,
-                        nepochs=opt.warmup_epochs, iters_per_epoch=num_batches)
-    else:
-        lr_scheduler = LRSequential([
-            LRScheduler('linear', base_lr=0, target_lr=opt.lr,
-                        nepochs=opt.warmup_epochs, iters_per_epoch=num_batches),
-            LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
-                        nepochs=opt.num_epochs - opt.warmup_epochs,
-                        iters_per_epoch=num_batches,
-                        step_epoch=lr_decay_epoch,
-                        step_factor=lr_decay, power=2)
-        ])
+    lr_scheduler = LRSequential([
+        LRScheduler('linear', base_lr=0, target_lr=opt.lr,
+                    nepochs=opt.warmup_epochs, iters_per_epoch=num_batches),
+        LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
+                    nepochs=opt.num_epochs - opt.warmup_epochs,
+                    iters_per_epoch=num_batches,
+                    step_epoch=lr_decay_epoch,
+                    step_factor=lr_decay, power=2)
+    ])
 
     model_name = opt.model
 
@@ -172,7 +168,7 @@ def main():
 
     optimizer = opt.optimizer
     if 'adaalter' in optimizer or 'adagrad' in optimizer:
-        optimizer_params = {'wd': opt.wd, 'lr_scheduler': lr_scheduler}
+        optimizer_params = {'wd': opt.wd, 'learning_rate': opt.lr}
     else:
         optimizer_params = {'wd': opt.wd, 'momentum': opt.momentum, 'lr_scheduler': lr_scheduler}
     if opt.dtype != 'float32':
