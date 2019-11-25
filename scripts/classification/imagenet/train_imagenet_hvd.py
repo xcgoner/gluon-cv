@@ -166,7 +166,7 @@ def main():
 
     optimizer = opt.optimizer
     if 'adaalter' in optimizer or 'adagrad' in optimizer:
-        optimizer_params = {'wd': opt.wd, 'lr_scheduler': lr_scheduler}
+        optimizer_params = {'wd': opt.wd}
     else:
         optimizer_params = {'wd': opt.wd, 'momentum': opt.momentum, 'lr_scheduler': lr_scheduler}
     if opt.dtype != 'float32':
