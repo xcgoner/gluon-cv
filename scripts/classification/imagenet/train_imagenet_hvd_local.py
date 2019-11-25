@@ -14,6 +14,8 @@ from gluoncv.utils import makedirs, LRSequential, LRScheduler
 
 import horovod.mxnet as hvd
 
+from distributed_local_sgd import DistributedHierLocalHVDTrainer
+
 os.environ['MXNET_SAFE_ACCUMULATION'] = '1'
 
 # CLI
@@ -41,6 +43,8 @@ def parse_args():
                         help='number of training epochs.')
     parser.add_argument('--optimizer', type=str, default='nag',
                         help='optimizer')
+    parser.add_argument('--local-sgd-interval', type=int, default=10,
+                        help='interval of local SGD')
     parser.add_argument('--lr', type=float, default=0.1,
                         help='learning rate. default is 0.1.')
     parser.add_argument('--momentum', type=float, default=0.9,
@@ -140,7 +144,7 @@ def main():
     else:
         lr_decay_epoch = [int(i) for i in opt.lr_decay_epoch.split(',')]
     lr_decay_epoch = [e - opt.warmup_epochs for e in lr_decay_epoch]
-    num_batches = num_training_samples // batch_size
+    num_batches = num_training_samples // (batch_size * hvd.size())
 
     lr_scheduler = LRSequential([
         LRScheduler('linear', base_lr=0, target_lr=opt.lr,
@@ -360,10 +364,15 @@ def main():
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer, optimizer_params)
 
-        trainer = hvd.DistributedTrainer(
+        # trainer = hvd.DistributedTrainer(
+        #     net.collect_params(),  
+        #     optimizer,
+        #     optimizer_params)
+
+        trainer = DistributedHierLocalHVDTrainer(
             net.collect_params(),  
             optimizer,
-            optimizer_params)
+            optimizer_params, local_sgd_interval = 0)
 
         if opt.resume_states is not '':
             trainer.load_states(opt.resume_states)
@@ -382,6 +391,12 @@ def main():
         best_val_score = 1
 
         for epoch in range(opt.resume_epoch, opt.num_epochs):
+
+            if epoch + 1 == opt.warmup_epochs:
+                trainer._local_sgd_interval = opt.local_sgd_interval
+                trainer._optimizer._full_sync = False
+                trainer.init_states()
+
             tic = time.time()
             if opt.use_rec:
                 train_data.reset()

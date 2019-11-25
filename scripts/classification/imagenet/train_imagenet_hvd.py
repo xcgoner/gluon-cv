@@ -142,7 +142,7 @@ def main():
     else:
         lr_decay_epoch = [int(i) for i in opt.lr_decay_epoch.split(',')]
     lr_decay_epoch = [e - opt.warmup_epochs for e in lr_decay_epoch]
-    num_batches = num_training_samples // batch_size
+    num_batches = num_training_samples // (batch_size * hvd.size())
 
     if 'adaalter' in optimizer or 'adagrad' in optimizer:
         lr_scheduler = LRScheduler('linear', base_lr=0, target_lr=opt.lr,
