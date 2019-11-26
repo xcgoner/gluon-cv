@@ -45,6 +45,8 @@ def parse_args():
                         help='optimizer')
     parser.add_argument('--local-sgd-interval', type=int, default=10,
                         help='interval of local SGD')
+    parser.add_argument('--local-sgd-warmup-steps', type=int, default=600,
+                        help='number of warmup steps for local sgd.')
     parser.add_argument('--lr', type=float, default=0.1,
                         help='learning rate. default is 0.1.')
     parser.add_argument('--momentum', type=float, default=0.9,
@@ -390,9 +392,11 @@ def main():
 
         best_val_score = 1
 
+        num_steps = 0
+
         for epoch in range(opt.resume_epoch, opt.num_epochs):
 
-            if epoch + 1 == opt.warmup_epochs:
+            if num_steps + 1 == opt.local_sgd_warmup_steps:
                 trainer._local_sgd_interval = opt.local_sgd_interval
                 trainer._optimizer._full_sync = False
                 trainer.init_states()
@@ -475,6 +479,8 @@ def main():
                 if hvd.local_rank() == 0:
                     net.save_parameters('%s/imagenet-%s-%d.params'%(save_dir, model_name, epoch))
                     trainer.save_states('%s/imagenet-%s-%d.states'%(save_dir, model_name, epoch))
+
+            num_steps = num_steps + 1
 
         if save_frequency and save_dir:
             if hvd.local_rank() == 0:
