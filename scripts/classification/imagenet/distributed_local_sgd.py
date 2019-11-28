@@ -118,7 +118,7 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
                 #     param.list_data()[0].copyto(param.list_data()[j])
 
     def allreduce_states(self):
-        for i, param in enumerate(sorted(self._params, key=lambda p: p.name, reverse=True)):
+        for i, param in reversed(list(enumerate(self._params))):
             if param.grad_req != 'null':
                 state_array = self._updaters[0].states[i][1]
                 idx = i+len(self._params)*2
