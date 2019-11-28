@@ -375,6 +375,7 @@ def main():
             net.collect_params(),  
             optimizer,
             optimizer_params, local_sgd_interval = 0)
+        trainer._optimizer._full_sync = True
 
         if opt.resume_states is not '':
             trainer.load_states(opt.resume_states)
