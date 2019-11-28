@@ -414,7 +414,6 @@ def main():
                 if num_steps + 1 == opt.local_sgd_warmup_steps:
                     trainer._local_sgd_interval = opt.local_sgd_interval
                     trainer._optimizer._full_sync = False
-                    trainer._scale *= hvd.size()
                     trainer.init_states()
 
                 if opt.mixup:

@@ -46,7 +46,7 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
 
         self._hvd_param_buf = {}
 
-        self._scale /= hvd.size()
+        # self._scale /= hvd.size()
 
         # print(self._local_sgd_interval)
 
@@ -66,7 +66,10 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
             If true, ignores Parameters with stale gradient (gradient that has not
             been updated by `backward` after last step) and skip update.
         """
-        rescale_grad = self._scale / batch_size
+        if self._local_sgd_interval == 0:
+            rescale_grad = self._scale / batch_size / hvd.size()
+        else:
+            rescale_grad = self._scale / batch_size
         self._check_and_rescale_grad(rescale_grad)
 
         if not self._kv_initialized:
