@@ -396,11 +396,6 @@ def main():
 
         for epoch in range(opt.resume_epoch, opt.num_epochs):
 
-            if num_steps + 1 == opt.local_sgd_warmup_steps:
-                trainer._local_sgd_interval = opt.local_sgd_interval
-                trainer._optimizer._full_sync = False
-                trainer.init_states()
-
             tic = time.time()
             if opt.use_rec:
                 train_data.reset()
@@ -409,6 +404,11 @@ def main():
 
             for i, batch in enumerate(train_data):
                 data, label = batch_fn(batch, ctx)
+
+                if num_steps + 1 == opt.local_sgd_warmup_steps:
+                    trainer._local_sgd_interval = opt.local_sgd_interval
+                    trainer._optimizer._full_sync = False
+                    trainer.init_states()
 
                 if opt.mixup:
                     lam = np.random.beta(opt.mixup_alpha, opt.mixup_alpha)
