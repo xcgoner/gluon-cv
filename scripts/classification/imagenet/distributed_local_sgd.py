@@ -73,6 +73,7 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
             self._init_params()
     
         if self._local_sgd_interval == 0:
+            print('_allreduce_grads')
             self._allreduce_grads()
 
         self._update(ignore_stale_grad)
@@ -81,6 +82,7 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
             # local sgd
             self._local_sgd_counter += 1
             if self._local_sgd_counter == self._local_sgd_interval:
+                print('local sgd')
                 self._local_sgd_counter = 0
                 # synchronization
                 self.allreduce_params()
