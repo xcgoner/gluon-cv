@@ -116,7 +116,7 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
         gradients to perform certain transformation, such as in gradient clipping, then
         you may want to manually call `allreduce_grads()` and `update()` separately.
         """
-        for i, param in enumerate(self._params):
+        for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
             if param.grad_req != 'null':
                 hvd.allreduce_(param.list_data()[0], average=True, 
                                        name=str(len(self._params) + i), priority=-i)
@@ -124,13 +124,13 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
                 #     param.list_data()[0].copyto(param.list_data()[j])
 
     def allreduce_states(self):
-        for i, param in reversed(list(enumerate(self._params))):
+        for i, param in enumerate(sorted(self._params, key=lambda p: p.name, reverse=True)):
             if param.grad_req != 'null':
                 state_array = self._updaters[0].states[i][1]
-                idx = i+len(self._params)
+                idx = i+len(self._params)*2
                 if param._stype == 'default':
                     hvd.allreduce_(state_array, average=True, 
-                                   name=str(len(self._params)*2 + idx), priority=i-len(self._params)*2)
+                                   name=str(idx), priority=i-len(self._params)*2)
                     self._updaters[0].states[i][0][:] = state_array
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
@@ -140,6 +140,6 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
         mx.nd.waitall()
         self._hvd_param_buf.clear()
         mx.nd.waitall()
-        for i, param in reversed(list(enumerate(self._params))):
+        for i, param in enumerate(sorted(self._params, key=lambda p: p.name, reverse=True)):
             if param.grad_req != 'null':
                 self._updaters[0].states[i] = (self._updaters[0].states[i][0], self._updaters[0].states[i][0].copy())
