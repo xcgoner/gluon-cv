@@ -91,10 +91,10 @@ class LocalAdaAlter(Optimizer):
             grad[:] = grad * self.rescale_grad
             if self.clip_gradient is not None:
                 grad[:] = clip(grad, -self.clip_gradient, self.clip_gradient)
+            if self._full_sync:
+                history[:] += square(grad)
             div = grad / sqrt(history + self.float_stable_eps)
             weight[:] += (div + weight * wd) * -lr
 
-            if self._full_sync:
-                history[:] += square(grad)
-            else:
+            if not self._full_sync:
                 cache_history[:] += square(grad)
