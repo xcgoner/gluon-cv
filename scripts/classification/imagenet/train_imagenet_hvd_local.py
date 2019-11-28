@@ -49,6 +49,8 @@ def parse_args():
                         help='number of warmup steps for local sgd.')
     parser.add_argument('--lr', type=float, default=0.1,
                         help='learning rate. default is 0.1.')
+    parser.add_argument('--eps', type=float, default=1e-7,
+                        help='epsilon of adagrad. default is 1e-7.')
     parser.add_argument('--momentum', type=float, default=0.9,
                         help='momentum value for optimizer, default is 0.9.')
     parser.add_argument('--wd', type=float, default=0.0001,
@@ -179,7 +181,7 @@ def main():
         kwargs['last_gamma'] = True
 
     if 'adaalter' in optimizer or 'adagrad' in optimizer:
-        optimizer_params = {'wd': opt.wd, 'lr_scheduler': lr_scheduler}
+        optimizer_params = {'wd': opt.wd, 'lr_scheduler': lr_scheduler, 'eps': opt.eps}
     else:
         optimizer_params = {'wd': opt.wd, 'momentum': opt.momentum, 'lr_scheduler': lr_scheduler}
     if opt.dtype != 'float32':
