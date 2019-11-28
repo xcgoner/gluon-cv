@@ -73,7 +73,7 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
             self._init_params()
     
         if self._local_sgd_interval == 0:
-            print('_allreduce_grads')
+            # print('_allreduce_grads')
             self._allreduce_grads()
 
         self._update(ignore_stale_grad)
@@ -82,7 +82,7 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
             # local sgd
             self._local_sgd_counter += 1
             if self._local_sgd_counter == self._local_sgd_interval:
-                print('local sgd')
+                # print('local sgd')
                 self._local_sgd_counter = 0
                 # synchronization
                 self.allreduce_params()
@@ -120,8 +120,8 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 hvd.allreduce_(param.list_data()[0], average=True, 
                                        name=str(i), priority=-i)
-                for j in range(1, len(param.list_data())):
-                    param.list_data()[0].copyto(param.list_data()[j])
+                # for j in range(1, len(param.list_data())):
+                #     param.list_data()[0].copyto(param.list_data()[j])
 
     def allreduce_states(self):
         for i, param in reversed(list(enumerate(self._params))):
