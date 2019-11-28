@@ -119,7 +119,7 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 hvd.allreduce_(param.list_data()[0], average=True, 
-                                       name=str(i), priority=-i)
+                                       name=str(len(self._params) + i), priority=-i)
                 # for j in range(1, len(param.list_data())):
                 #     param.list_data()[0].copyto(param.list_data()[j])
 
@@ -130,7 +130,7 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
                 idx = i+len(self._params)
                 if param._stype == 'default':
                     hvd.allreduce_(state_array, average=True, 
-                                   name=str(idx), priority=i-len(self._params)*2)
+                                   name=str(len(self._params)*2 + idx), priority=i-len(self._params)*2)
                     self._updaters[0].states[i][0][:] = state_array
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")

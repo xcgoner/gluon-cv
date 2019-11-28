@@ -139,6 +139,8 @@ def main():
     context = [mx.gpu(hvd.local_rank())]
     num_workers = opt.num_workers
 
+    optimizer = opt.optimizer
+
     lr_decay = opt.lr_decay
     lr_decay_period = opt.lr_decay_period
     if opt.lr_decay_period > 0:
@@ -148,15 +150,19 @@ def main():
     lr_decay_epoch = [e - opt.warmup_epochs for e in lr_decay_epoch]
     num_batches = num_training_samples // (batch_size * hvd.size())
 
-    lr_scheduler = LRSequential([
-        LRScheduler('linear', base_lr=0, target_lr=opt.lr,
-                    nepochs=opt.warmup_epochs, iters_per_epoch=num_batches),
-        LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
-                    nepochs=opt.num_epochs - opt.warmup_epochs,
-                    iters_per_epoch=num_batches,
-                    step_epoch=lr_decay_epoch,
-                    step_factor=lr_decay, power=2)
-    ])
+    if 'adaalter' in optimizer or 'adagrad' in optimizer:
+        lr_scheduler = LRScheduler('linear', base_lr=0, target_lr=opt.lr,
+                        nepochs=opt.warmup_epochs, iters_per_epoch=num_batches)
+    else:
+        lr_scheduler = LRSequential([
+            LRScheduler('linear', base_lr=0, target_lr=opt.lr,
+                        nepochs=opt.warmup_epochs, iters_per_epoch=num_batches),
+            LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
+                        nepochs=opt.num_epochs - opt.warmup_epochs,
+                        iters_per_epoch=num_batches,
+                        step_epoch=lr_decay_epoch,
+                        step_factor=lr_decay, power=2)
+        ])
 
     model_name = opt.model
 
@@ -172,9 +178,8 @@ def main():
     if opt.last_gamma:
         kwargs['last_gamma'] = True
 
-    optimizer = opt.optimizer
     if 'adaalter' in optimizer or 'adagrad' in optimizer:
-        optimizer_params = {'wd': opt.wd, 'learning_rate': opt.lr}
+        optimizer_params = {'wd': opt.wd, 'lr_scheduler': lr_scheduler}
     else:
         optimizer_params = {'wd': opt.wd, 'momentum': opt.momentum, 'lr_scheduler': lr_scheduler}
     if opt.dtype != 'float32':
