@@ -459,6 +459,8 @@ def main():
                                 train_metric_name, train_metric_score, trainer.learning_rate))
                     btic = time.time()
 
+                num_steps = num_steps + 1
+
             train_metric_name, train_metric_score = train_metric.get()
             throughput = int(batch_size * i /(time.time() - tic))
 
@@ -480,7 +482,6 @@ def main():
                     net.save_parameters('%s/imagenet-%s-%d.params'%(save_dir, model_name, epoch))
                     trainer.save_states('%s/imagenet-%s-%d.states'%(save_dir, model_name, epoch))
 
-            num_steps = num_steps + 1
 
         if save_frequency and save_dir:
             if hvd.local_rank() == 0:
