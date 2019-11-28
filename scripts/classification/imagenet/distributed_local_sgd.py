@@ -46,6 +46,8 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
 
         self._hvd_param_buf = {}
 
+        self._scale /= hvd.size()
+
         # print(self._local_sgd_interval)
 
     def step(self, batch_size, ignore_stale_grad=False):
@@ -96,7 +98,7 @@ class DistributedHierLocalHVDTrainer(mx.gluon.Trainer):
         # sort needed for Python < 3.6 is not guaranteed
         for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
             if param.grad_req != 'null':
-                allreduce_(param.list_grad()[0], average=True,
+                allreduce_(param.list_grad()[0], average=False,
                            name=str(i), priority=-i)
 
     def allreduce_params(self):
