@@ -20,6 +20,7 @@ from gluoncv.data.sampler import SplitSampler
 import horovod.mxnet as hvd
 
 def main():
+    hvd.init()
     a = mx.nd.array([4.0])
     print(a.asnumpy())
     hvd.allreduce_(a, name='a')
