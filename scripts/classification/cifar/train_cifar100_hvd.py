@@ -196,15 +196,21 @@ def main():
             name, acc = train_metric.get()
             name, val_acc = test(ctx, val_data)
 
-            # train_loss_nd = mx.nd.array(train_loss)
-            # acc_nd = mx.nd.array(acc)
-            # val_acc_nd = mx.nd.array(val_acc)
-            # hvd.allreduce_(train_loss_nd, name='train_loss', average=False)
-            # hvd.allreduce_(acc_nd, name='train_acc')
-            # hvd.allreduce_(val_acc_nd, name='val_acc')
-            # train_loss = np.asscalar(train_loss_nd.asnumpy())
-            # acc = np.asscalar(acc_nd.asnumpy())
-            # val_acc = np.asscalar(val_acc_nd.asnumpy())
+            logging.info('[Epoch %d] val=%f' %
+                    (epoch,  val_acc))
+
+            train_loss_nd = mx.nd.array(train_loss)
+            acc_nd = mx.nd.array(acc)
+            val_acc_nd = mx.nd.array(val_acc)
+            hvd.allreduce_(train_loss_nd, name='train_loss', average=False)
+            hvd.allreduce_(acc_nd, name='train_acc')
+            hvd.allreduce_(val_acc_nd, name='val_acc')
+            train_loss = np.asscalar(train_loss_nd.asnumpy())
+            acc = np.asscalar(acc_nd.asnumpy())
+            val_acc = np.asscalar(val_acc_nd.asnumpy())
+
+            logging.info('[Epoch %d] val=%f' %
+                    (epoch,  val_acc))
             
             train_history.update([1-acc, 1-val_acc])
             # train_history.plot(save_path='%s/%s_history.png'%(plot_path, model_name))
