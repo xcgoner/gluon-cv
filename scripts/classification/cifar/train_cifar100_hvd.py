@@ -204,7 +204,7 @@ def main():
             train_history.update([1-acc, 1-val_acc])
             # train_history.plot(save_path='%s/%s_history.png'%(plot_path, model_name))
 
-            
+            # why average=False ???
             train_loss_nd = mx.nd.array(train_loss)
             hvd.allreduce_(train_loss_nd, name='train_loss', average=False)
             train_loss = np.asscalar(train_loss_nd.asnumpy())
