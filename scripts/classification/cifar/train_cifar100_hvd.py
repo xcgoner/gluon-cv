@@ -206,17 +206,15 @@ def main():
 
             # why average=False ???
             train_loss_nd = mx.nd.array([train_loss])
-            hvd.allreduce_(train_loss_nd, name='train_loss', average=False)
+            hvd.allreduce_(train_loss_nd, name='train_loss', average=True)
             train_loss = np.asscalar(train_loss_nd.asnumpy())
             acc_nd = mx.nd.array(acc)
-            hvd.allreduce_(acc_nd, name='acc', average=False)
+            hvd.allreduce_(acc_nd, name='acc', average=True)
             acc = np.asscalar(acc_nd.asnumpy())
-            print(val_acc)
             val_acc_nd = mx.nd.array([val_acc])
-            hvd.allreduce_(val_acc_nd, name='val_acc', average=False)
+            hvd.allreduce_(val_acc_nd, name='val_acc', average=True)
             mx.nd.waitall()
             val_acc = np.asscalar(val_acc_nd.asnumpy())
-            print(val_acc)
 
             if val_acc > best_val_score:
                 best_val_score = val_acc
