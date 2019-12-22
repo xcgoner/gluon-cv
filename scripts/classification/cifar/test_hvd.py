@@ -21,7 +21,7 @@ import horovod.mxnet as hvd
 
 def main():
     hvd.init()
-    a = mx.nd.array([4.0])
+    a = mx.nd.array([1.0 * hvd.rank()])
     print(a.asnumpy())
     hvd.allreduce_(a, name='a')
     print(a.asnumpy())
