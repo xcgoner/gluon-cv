@@ -208,7 +208,7 @@ def main():
             train_loss_nd = mx.nd.array([train_loss])
             hvd.allreduce_(train_loss_nd, name='train_loss', average=True)
             train_loss = np.asscalar(train_loss_nd.asnumpy())
-            acc_nd = mx.nd.array(acc)
+            acc_nd = mx.nd.array([acc])
             hvd.allreduce_(acc_nd, name='acc', average=True)
             acc = np.asscalar(acc_nd.asnumpy())
             val_acc_nd = mx.nd.array([val_acc])
