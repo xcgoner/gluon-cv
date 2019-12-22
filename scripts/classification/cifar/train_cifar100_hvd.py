@@ -215,7 +215,7 @@ def main():
             val_acc_nd = mx.nd.array(val_acc)
             hvd.allreduce_(val_acc_nd, name='val_acc', average=False)
             val_acc = np.asscalar(val_acc_nd.asnumpy())
-            print(val_acc)
+            print(val_acc_nd)
 
             if val_acc > best_val_score:
                 best_val_score = val_acc
