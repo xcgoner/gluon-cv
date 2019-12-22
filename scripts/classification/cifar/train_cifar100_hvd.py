@@ -46,7 +46,7 @@ def parse_args():
                         help='epochs at which learning rate decays. default is 40,60.')
     parser.add_argument('--drop-rate', type=float, default=0.0,
                         help='dropout rate for wide resnet. default is 0.')
-    parser.add_argument('--mode', type=str, default='hybrid'
+    parser.add_argument('--mode', type=str, default='hybrid',
                         help='mode in which to train the model. options are imperative, hybrid')
     parser.add_argument('--save-period', type=int, default=10,
                         help='period in epoch of model saving.')
