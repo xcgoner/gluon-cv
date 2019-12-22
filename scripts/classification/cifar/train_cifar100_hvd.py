@@ -19,10 +19,6 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
-from mpi4py import MPI
-
-comm = MPI.COMM_WORLD
-
 # CLI
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a model for image classification.')
@@ -209,11 +205,15 @@ def main():
             # train_history.plot(save_path='%s/%s_history.png'%(plot_path, model_name))
 
             
-            comm.allreduce(train_loss, op=MPI.SUM)
-            comm.allreduce(acc, op=MPI.SUM)
-            comm.allreduce(val_acc, op=MPI.SUM)
-            acc /= num_workers
-            val_acc /= num_workers
+            train_loss_nd = mx.nd.array(train_loss)
+            hvd.allreduce_(train_loss_nd, name='train_loss', average=False)
+            train_loss = np.asscalar(train_loss_nd.asnumpy())
+            acc_nd = mx.nd.array(acc)
+            hvd.allreduce_(acc_nd, name='acc', average=False)
+            acc = np.asscalar(acc_nd.asnumpy())
+            val_acc_nd = mx.nd.array(val_acc)
+            hvd.allreduce_(val_acc_nd, name='val_acc', average=False)
+            val_acc = np.asscalar(val_acc_nd.asnumpy())
 
             if val_acc > best_val_score:
                 best_val_score = val_acc
