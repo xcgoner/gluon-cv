@@ -19,6 +19,10 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
+from mpi4py import MPI
+
+comm = MPI.COMM_WORLD
+
 # CLI
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a model for image classification.')
@@ -139,15 +143,15 @@ def main():
             sampler=SplitSampler(len(train_dataset), num_parts=num_workers, part_index=rank),
             batch_size=batch_size, last_batch='discard', num_workers=opt.num_workers)
 
-        # val_data = gluon.data.DataLoader(
-        #     val_dataset,
-        #     sampler=SplitSampler(len(val_dataset), num_parts=num_workers, part_index=rank),
-        #     batch_size=batch_size, num_workers=opt.num_workers)
-        
-        # allreduce val acc is not working
         val_data = gluon.data.DataLoader(
             val_dataset,
+            sampler=SplitSampler(len(val_dataset), num_parts=num_workers, part_index=rank),
             batch_size=batch_size, num_workers=opt.num_workers)
+        
+        # # allreduce val acc is not working
+        # val_data = gluon.data.DataLoader(
+        #     val_dataset,
+        #     batch_size=batch_size, num_workers=opt.num_workers)
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
@@ -203,6 +207,13 @@ def main():
             
             train_history.update([1-acc, 1-val_acc])
             # train_history.plot(save_path='%s/%s_history.png'%(plot_path, model_name))
+
+            
+            comm.Allreduce(train_loss, train_loss)
+            comm.Allreduce(acc, acc)
+            comm.Allreduce(val_acc, val_acc)
+            acc /= num_workers
+            val_acc /= num_workers
 
             if val_acc > best_val_score:
                 best_val_score = val_acc
