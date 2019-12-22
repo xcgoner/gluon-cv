@@ -202,6 +202,7 @@ def main():
             train_loss_nd = mx.nd.array(train_loss)
             acc_nd = mx.nd.array(acc)
             val_acc_nd = mx.nd.array(val_acc)
+            mx.nd.waitall()
             hvd.allreduce_(train_loss_nd, name='train_loss', average=False)
             hvd.allreduce_(acc_nd, name='train_acc')
             hvd.allreduce_(val_acc_nd, name='val_acc')
