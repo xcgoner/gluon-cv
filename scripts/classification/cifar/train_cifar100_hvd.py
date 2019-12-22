@@ -209,9 +209,9 @@ def main():
             # train_history.plot(save_path='%s/%s_history.png'%(plot_path, model_name))
 
             
-            comm.Allreduce(train_loss, train_loss)
-            comm.Allreduce(acc, acc)
-            comm.Allreduce(val_acc, val_acc)
+            comm.Allreduce(train_loss, train_loss, op=MPI.SUM)
+            comm.Allreduce(acc, acc, op=MPI.SUM)
+            comm.Allreduce(val_acc, val_acc, op=MPI.SUM)
             acc /= num_workers
             val_acc /= num_workers
 
