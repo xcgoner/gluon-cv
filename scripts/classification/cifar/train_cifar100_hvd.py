@@ -214,6 +214,7 @@ def main():
             print(val_acc)
             val_acc_nd = mx.nd.array(val_acc)
             hvd.allreduce_(val_acc_nd, name='val_acc', average=False)
+            mx.nd.waitall()
             val_acc = np.asscalar(val_acc_nd.asnumpy())
             print(val_acc_nd)
 
