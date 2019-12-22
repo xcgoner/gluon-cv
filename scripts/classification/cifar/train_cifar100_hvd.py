@@ -141,7 +141,6 @@ def main():
 
         val_data = gluon.data.DataLoader(
             val_dataset,
-            sampler=SplitSampler(len(val_dataset), num_parts=num_workers, part_index=rank),
             batch_size=batch_size, num_workers=opt.num_workers)
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
@@ -199,7 +198,7 @@ def main():
             train_loss_nd = mx.nd.array(train_loss)
             acc_nd = mx.nd.array(acc)
             val_acc_nd = mx.nd.array(val_acc)
-            hvd.allreduce_(train_loss_nd, name='train_loss')
+            hvd.allreduce_(train_loss_nd, name='train_loss', average=False)
             hvd.allreduce_(acc_nd, name='train_acc')
             hvd.allreduce_(val_acc_nd, name='val_acc')
             train_loss = np.asscalar(train_loss_nd.asnumpy())
