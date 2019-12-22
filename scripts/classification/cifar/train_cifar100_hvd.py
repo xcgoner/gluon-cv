@@ -176,6 +176,7 @@ def main():
                 trainer.set_learning_rate(trainer.learning_rate*lr_decay)
                 lr_decay_count += 1
 
+            print(len(train_data))
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
                 label = gluon.utils.split_and_load(batch[1], ctx_list=ctx, batch_axis=0)
