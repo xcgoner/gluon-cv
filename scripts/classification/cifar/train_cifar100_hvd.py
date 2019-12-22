@@ -137,12 +137,12 @@ def main():
         train_data = gluon.data.DataLoader(
             train_dataset,
             sampler=SplitSampler(len(train_dataset), num_parts=num_workers, part_index=rank),
-            batch_size=batch_size, shuffle=True, last_batch='discard', num_workers=opt.num_workers)
+            batch_size=batch_size, last_batch='discard', num_workers=opt.num_workers)
 
         val_data = gluon.data.DataLoader(
             val_dataset,
             sampler=SplitSampler(len(val_dataset), num_parts=num_workers, part_index=rank),
-            batch_size=batch_size, shuffle=False, num_workers=opt.num_workers)
+            batch_size=batch_size, num_workers=opt.num_workers)
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
