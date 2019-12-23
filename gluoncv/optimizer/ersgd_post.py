@@ -75,8 +75,9 @@ class ERSGDPost(Optimizer):
         error = self.pre_updater.states[index]
 
         # compress
-        if index is not in self.compressed_grad:
+        if index not in self.compressed_grad:
             self.compressed_grad[index] = zeros(weight.shape, weight.context, dtype=weight.dtype, stype=weight.stype)
+        compressed_grad = self.compressed_grad[index]
         sign(grad, out=compressed_grad)
         compressed_grad[:] *= (norm(grad, ord=1) / grad.size)
         # state is the error
