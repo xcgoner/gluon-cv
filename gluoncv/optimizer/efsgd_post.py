@@ -20,7 +20,7 @@
 
 from mxnet.optimizer import Optimizer, register
 from mxnet.ndarray import zeros, NDArray
-from mxnet.ndarray import square, power, sqrt, maximum, minimum, clip, sign
+from mxnet.ndarray import square, power, sqrt, maximum, minimum, clip, sign, norm
 from mxnet.ndarray import sparse
 
 __all__ = ['EFSGDPost']
