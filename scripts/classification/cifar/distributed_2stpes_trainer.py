@@ -110,6 +110,10 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         self._pre_optimizer.rescale_grad = rescale_grad
         # self._check_and_rescale_grad(rescale_grad)
 
+        # sync lr between pre-optimizer and post-optimizer
+        if self._pre_optimizer is not None:
+            self._pre_optimizer.set_learning_rate(self._optimizer.learning_rate)
+
         if not self._kv_initialized:
             self._init_kvstore()
         if self._params_to_init:
