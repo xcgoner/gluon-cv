@@ -23,7 +23,7 @@ from mxnet.ndarray import zeros, NDArray
 from mxnet.ndarray import square, power, sqrt, maximum, minimum, clip, sign
 from mxnet.ndarray import sparse
 
-__all__ = ['signumpost']
+__all__ = ['SignumPost']
 
 
 @register
