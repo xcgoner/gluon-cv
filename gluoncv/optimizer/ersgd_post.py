@@ -50,11 +50,11 @@ class ERSGDPost(Optimizer):
     eps: float, optional
         Initial value of the history accumulator. Avoids division by 0.
     """
-    def __init__(self, pre_updater=None, learning_rate=0.01, momentum=0.9, nesterov=False, **kwargs):
+    def __init__(self, learning_rate=0.01, momentum=0.9, nesterov=False, **kwargs):
         super(ERSGDPost, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
         self.nesterov = nesterov
-        self.pre_updater = pre_updater
+        self.compressed_grad = dict()
         # debug
         if self.nesterov:
             print('use Nesterov momentum')
@@ -62,8 +62,7 @@ class ERSGDPost(Optimizer):
     def create_state(self, index, weight):
         momentum = None
         if self.momentum != 0.0:
-            momentum = (zeros(weight.shape, weight.context, dtype=weight.dtype, stype=weight.stype),
-                        zeros(weight.shape, weight.context, dtype=weight.dtype, stype=weight.stype))
+            momentum = zeros(weight.shape, weight.context, dtype=weight.dtype, stype=weight.stype)
         return momentum
 
     def update(self, index, weight, grad, state):
@@ -72,10 +71,12 @@ class ERSGDPost(Optimizer):
         self._update_count(index)
         lr = self._get_lr(index)
 
-        mom, compressed_grad = state
+        mom = state
         error = self.pre_updater.states[index]
 
         # compress
+        if index is not in self.compressed_grad:
+            self.compressed_grad[index] = zeros(weight.shape, weight.context, dtype=weight.dtype, stype=weight.stype)
         sign(grad, out=compressed_grad)
         compressed_grad[:] *= (norm(grad, ord=1) / grad.size)
         # state is the error
