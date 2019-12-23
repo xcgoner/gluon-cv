@@ -48,7 +48,7 @@ class EFSGDPre(Optimizer):
     eps: float, optional
         Initial value of the history accumulator. Avoids division by 0.
     """
-    def __init__(self, learning_rate=0.01, momentum=0.9, **kwargs):
+    def __init__(self, learning_rate=0.01, momentum=0.9, nesterov=False, **kwargs):
         super(EFSGDPre, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
         self.prev_lr = learning_rate
