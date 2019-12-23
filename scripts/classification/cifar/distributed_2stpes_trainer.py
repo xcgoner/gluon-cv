@@ -35,12 +35,12 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
     # only works with LocalAdaAlter
     def __init__(self, params, optimizer, pre_optimizer=None, optimizer_params=None, sync_grad = True, reset_interval=0):
 
+        self._pre_optimizer = pre_optimizer
+
         super(Distributed2StepsTrainer, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None, update_on_kvstore = False)
         
         self._update_on_kvstore = False
-
-        self._pre_optimizer = pre_optimizer
 
         self._sync_grad = sync_grad
         self._reset_interval = reset_interval
