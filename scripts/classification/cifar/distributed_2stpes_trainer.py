@@ -122,7 +122,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
                 for upd, arr, grad in zip(updates, param.list_data(), param.list_grad()):
                     if not ignore_stale_grad or arr._fresh_grad:
                         upd.append((i, grad, arr))
-                        arr._fresh_grad = False
+                        # arr._fresh_grad = True
 
             if not (self._kvstore and self._update_on_kvstore):
                 for updater, upd in zip(self._pre_updaters, updates):

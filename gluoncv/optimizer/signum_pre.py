@@ -62,7 +62,7 @@ class SignumPre(Optimizer):
     def update(self, index, weight, grad, state):
         assert(isinstance(weight, NDArray))
         assert(isinstance(grad, NDArray))
-        self._update_count(index)
+        # self._update_count(index)
         lr = self._get_lr(index)
         wd = self._get_wd(index)
 
