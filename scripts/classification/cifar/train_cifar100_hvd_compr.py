@@ -42,6 +42,8 @@ def parse_args():
                         help='use Nesterov momentum')
     parser.add_argument('--reset-interval', type=int, default=0,
                         help='period of error reset.')
+    parser.add_argument('--sparse-ratio', type=float, default=0,
+                        help='propotion of sparsity')
     parser.add_argument('--wd', type=float, default=0.0001,
                         help='weight decay rate. default is 0.0001.')
     parser.add_argument('--lr-decay', type=float, default=0.1,
@@ -180,7 +182,8 @@ def main():
             pre_optimizer, 
             optimizer_params, 
             save_prev_lr=save_prev_lr,
-            reset_interval=opt.reset_interval)
+            reset_interval=opt.reset_interval,
+            sparse_ratio=opt.sparse_ratio)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})
@@ -222,6 +225,10 @@ def main():
                 train_metric.update(label, output)
                 name, acc = train_metric.get()
                 iteration += 1
+
+            if opt.reset_interval > 0:
+                trainer.allreduce_params()
+                trainer.allreduce_states()
 
             train_loss /= batch_size * num_batch
             name, acc = train_metric.get()

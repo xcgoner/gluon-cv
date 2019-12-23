@@ -33,7 +33,7 @@ from horovod.mxnet.mpi_ops import allreduce_
 
 class Distributed2StepsTrainer(mx.gluon.Trainer):
     # only works with LocalAdaAlter
-    def __init__(self, params, optimizer, pre_optimizer=None, optimizer_params=None, sync_grad = True, reset_interval=0, save_prev_lr=False):
+    def __init__(self, params, optimizer, pre_optimizer=None, optimizer_params=None, sync_grad = True, reset_interval=0, save_prev_lr=False, sparse_ratio=0):
 
         self._pre_optimizer = pre_optimizer
 
@@ -46,11 +46,13 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         self._sync_grad = sync_grad
         self._reset_interval = reset_interval
         self._reset_counter = 0
+        self._sparse_ratio = sparse_ratio
 
         # efsgd
         self._save_prev_lr = save_prev_lr
 
         self._hvd_param_buf = {}
+
 
         # self._scale /= hvd.size()
 
@@ -85,6 +87,17 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
 
             if str.lower(pre_optimizer_name).startswith('ersgd'):
                 self._optimizer.pre_updater = self._pre_updaters[0]
+                # sparse compression
+                if self._sparse_ratio > 0:
+                    # debug
+                    print('use sparsity in ERSGD')
+                    param_idx_list = []
+                    for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
+                        if param.grad_req != 'null':
+                            param_idx_list.append(i)
+                    self._pre_optimizer.sparse_index_threshold = param_idx_list[round(len(param_idx_list)*self._sparse_ratio)]
+                else:
+                    self._pre_optimizer.sparse_index_threshold = -1
         else:
             self._pre_optimizer = None
             self._pre_updaters = None
@@ -172,6 +185,9 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         # sort needed for Python < 3.6 is not guaranteed
         for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
             if param.grad_req != 'null':
+                if self._sparse_ratio > 0 and i <= self._pre_optimizer.sparse_index_threshold:
+                    # sparsity for ersgd
+                    continue
                 allreduce_(param.list_grad()[0], average=True,
                            name=str(i), priority=-i)
 

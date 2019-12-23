@@ -72,7 +72,11 @@ class ERSGDPre(Optimizer):
             grad[:] += (weight * wd)
 
         # compress
-        state[:] = grad
-        sign(grad, out=grad)
-        grad[:] *= (norm(state, ord=1) / state.size)
-        state[:] -= grad
+        if self.sparse_index_threshold >= 0 and index <= self.sparse_index_threshold:
+            state[:] = grad
+            grad *= 0
+        else:    
+            state[:] = grad
+            sign(grad, out=grad)
+            grad[:] *= (norm(state, ord=1) / state.size)
+            state[:] -= grad
