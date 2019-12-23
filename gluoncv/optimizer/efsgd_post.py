@@ -66,6 +66,10 @@ class EFSGDPost(Optimizer):
         lr = self._get_lr(index)
         wd = self._get_wd(index)
 
+        # debug
+        if self.prev_lr != lr:
+            print(self.prev_lr / lr)
+
         # grad[:] += state * (self.prev_lr / lr)
         grad[:] += state
 
