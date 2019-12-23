@@ -118,12 +118,14 @@ def main():
 
     optimizer_params = {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum}
 
+    save_prev_lr = False
     if str.lower(optimizer) == 'signum':
         optimizer = 'signumpost'
         pre_optimizer = 'signumpre'
     elif str.lower(optimizer) == 'efsgd':
         optimizer = 'efsgdpost'
         pre_optimizer = 'efsgdpre'
+        save_prev_lr = True
     else:
         pre_optimizer = None
 
@@ -166,7 +168,8 @@ def main():
             net.collect_params(),  
             optimizer,
             pre_optimizer, 
-            optimizer_params)
+            optimizer_params, 
+            save_prev_lr=save_prev_lr)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})
