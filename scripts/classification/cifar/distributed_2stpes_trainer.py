@@ -78,10 +78,13 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
             # # debug
             # print('found a second optimizer:', self._pre_optimizer)
             pre_optimizer_name = self._pre_optimizer
-            self._pre_optimizer = opt.create(self._pre_optimizer, param_dict=param_dict,
-                                         **optimizer_params)
             if str.lower(pre_optimizer_name).startswith('ersgd'):
-                self._pre_optimizer.pre_updater = self._updaters[0]
+                self._pre_optimizer = opt.create(self._pre_optimizer, param_dict=param_dict,
+                                            pre_updater = self._updaters[0],
+                                            **optimizer_params)
+            else:
+                self._pre_optimizer = opt.create(self._pre_optimizer, param_dict=param_dict,
+                                            **optimizer_params)
             self._pre_updaters = [opt.get_updater(self._pre_optimizer) \
                             for _ in self._contexts]
         else:
