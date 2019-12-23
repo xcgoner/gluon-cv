@@ -23,11 +23,11 @@ from mxnet.ndarray import zeros, NDArray
 from mxnet.ndarray import square, power, sqrt, maximum, minimum, clip, sign
 from mxnet.ndarray import sparse
 
-__all__ = ['SignumPost']
+__all__ = ['EFSGDPost']
 
 
 @register
-class SignumPost(Optimizer):
+class EFSGDPost(Optimizer):
     """AdaAlter optimizer.
     TODO(xcong): update the description
     This class implements the AdaGrad optimizer described in *Adaptive Subgradient
@@ -48,13 +48,16 @@ class SignumPost(Optimizer):
     eps: float, optional
         Initial value of the history accumulator. Avoids division by 0.
     """
-    def __init__(self, learning_rate=0.01, momentum=0.9, wd_lh=0.0, **kwargs):
-        super(SignumPost, self).__init__(learning_rate=learning_rate, **kwargs)
+    def __init__(self, learning_rate=0.01, momentum=0.9, **kwargs):
+        super(EFSGDPost, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
-        self.wd_lh = wd_lh
+        self.prev_lr = learning_rate
 
     def create_state(self, index, weight):
-        return None
+        momentum = None
+        if self.momentum != 0.0:
+            momentum = zeros(weight.shape, weight.context, dtype=weight.dtype, stype=weight.stype)
+        return momentum
 
     def update(self, index, weight, grad, state):
         assert(isinstance(weight, NDArray))
@@ -63,9 +66,14 @@ class SignumPost(Optimizer):
         lr = self._get_lr(index)
         wd = self._get_wd(index)
 
-        # majority vote
+        grad[:] += state * (self.prev_lr / lr)
+
+        # compress
+        state[:] = grad
         sign(grad, out=grad)
+        grad[:] *= (norm(state, ord=1) / state.size)
+        error[:] -= grad
 
         # update
-        weight[:] = (1-lr*self.wd_lh) * weight - lr * grad
+        weight[:] -= lr * grad
 

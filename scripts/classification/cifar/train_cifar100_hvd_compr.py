@@ -121,6 +121,9 @@ def main():
     if str.lower(optimizer) == 'signum':
         optimizer = 'signumpost'
         pre_optimizer = 'signumpre'
+    elif str.lower(optimizer) == 'efsgd':
+        optimizer = 'efsgdpost'
+        pre_optimizer = 'efsgdpre'
     else:
         pre_optimizer = None
 

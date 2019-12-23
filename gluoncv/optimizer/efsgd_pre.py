@@ -20,14 +20,14 @@
 
 from mxnet.optimizer import Optimizer, register
 from mxnet.ndarray import zeros, NDArray
-from mxnet.ndarray import square, power, sqrt, maximum, minimum, clip, sign
+from mxnet.ndarray import square, power, sqrt, maximum, minimum, clip, sign, norm
 from mxnet.ndarray import sparse
 
-__all__ = ['SignumPost']
+__all__ = ['EFSGDPre']
 
 
 @register
-class SignumPost(Optimizer):
+class EFSGDPre(Optimizer):
     """AdaAlter optimizer.
     TODO(xcong): update the description
     This class implements the AdaGrad optimizer described in *Adaptive Subgradient
@@ -48,24 +48,40 @@ class SignumPost(Optimizer):
     eps: float, optional
         Initial value of the history accumulator. Avoids division by 0.
     """
-    def __init__(self, learning_rate=0.01, momentum=0.9, wd_lh=0.0, **kwargs):
-        super(SignumPost, self).__init__(learning_rate=learning_rate, **kwargs)
+    def __init__(self, learning_rate=0.01, momentum=0.9, **kwargs):
+        super(EFSGDPre, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
-        self.wd_lh = wd_lh
+        self.prev_lr = learning_rate
 
     def create_state(self, index, weight):
-        return None
+        momentum = None
+        if self.momentum != 0.0:
+            momentum = (zeros(weight.shape, weight.context, dtype=weight.dtype, stype=weight.stype),
+                        zeros(weight.shape, weight.context, dtype=weight.dtype, stype=weight.stype))
+        return momentum
 
     def update(self, index, weight, grad, state):
         assert(isinstance(weight, NDArray))
         assert(isinstance(grad, NDArray))
-        self._update_count(index)
+        # self._update_count(index)
         lr = self._get_lr(index)
         wd = self._get_wd(index)
 
-        # majority vote
+        mom, error = state
+
+        # prepare momentum
+        grad[:] *= self.rescale_grad
+        if self.clip_gradient is not None:
+            grad = clip(grad, -self.clip_gradient, self.clip_gradient)
+        if wd > 0:
+            grad[:] += (weight * wd)
+        mom[:] *= self.momentum
+        mom[:] += grad
+        grad[:] += mom * self.momentum
+        grad[:] += error * (self.prev_lr / lr)
+
+        # compress
+        error[:] = grad
         sign(grad, out=grad)
-
-        # update
-        weight[:] = (1-lr*self.wd_lh) * weight - lr * grad
-
+        grad[:] *= (norm(error, ord=1) / error.size)
+        error[:] -= grad

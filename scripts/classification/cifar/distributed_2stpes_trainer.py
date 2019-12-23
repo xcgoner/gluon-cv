@@ -33,7 +33,7 @@ from horovod.mxnet.mpi_ops import allreduce_
 
 class Distributed2StepsTrainer(mx.gluon.Trainer):
     # only works with LocalAdaAlter
-    def __init__(self, params, optimizer, pre_optimizer=None, optimizer_params=None, sync_grad = True, reset_interval=0):
+    def __init__(self, params, optimizer, pre_optimizer=None, optimizer_params=None, sync_grad = True, reset_interval=0, save_prev_lr=False):
 
         self._pre_optimizer = pre_optimizer
 
@@ -42,9 +42,13 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         
         self._update_on_kvstore = False
 
+        # ersgd
         self._sync_grad = sync_grad
         self._reset_interval = reset_interval
         self._reset_counter = 0
+
+        # efsgd
+        self._save_prev_lr = save_prev_lr
 
         self._hvd_param_buf = {}
 
@@ -135,6 +139,12 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
             self._allreduce_grads()
 
         self._update(ignore_stale_grad)
+
+        # efsgd
+        if self._save_prev_lr:
+            self._optimizer.prev_lr = self._optimizer.learning_rate
+            if self._pre_optimizer is not None:
+                self._pre_optimizer.prev_lr = self._pre_optimizer.learning_rate
 
         if self._reset_interval > 0:
             # local sgd
