@@ -26,3 +26,5 @@ from .efsgd_post import *
 from .efsgd_pre import *
 from .ersgd_post import *
 from .ersgd_pre import *
+from .spsgd_post import *
+from .spsgd_pre import *

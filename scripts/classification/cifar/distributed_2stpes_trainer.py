@@ -59,7 +59,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         # print(self._local_sgd_interval)
 
     def _init_optimizer(self, optimizer, optimizer_params):
-        param_dict = {i: param for i, param in enumerate(self._params)}
+        param_dict = {i: param for i, param in enumerate(sorted(self._params, key=lambda p: p.name))}
         if isinstance(optimizer, opt.Optimizer):
             assert not optimizer_params, \
                 "optimizer_params must be None if optimizer is an instance of " \
@@ -85,7 +85,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
             self._pre_updaters = [opt.get_updater(self._pre_optimizer) \
                             for _ in self._contexts]
 
-            if str.lower(pre_optimizer_name).startswith('ersgd'):
+            if str.lower(pre_optimizer_name).startswith('ersgd') or str.lower(pre_optimizer_name).startswith('spsgd'):
                 self._optimizer.pre_updater = self._pre_updaters[0]
                 # sparse compression
                 if self._sparse_ratio > 0:
@@ -140,7 +140,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         if self._pre_optimizer is not None:
             updates = [[] for _ in self._pre_updaters]
 
-            for i, param in enumerate(self._params):
+            for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
                 if param.grad_req == 'null':
                     continue
 

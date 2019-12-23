@@ -138,6 +138,12 @@ def main():
         save_prev_lr = False
         optimizer_params['nesterov'] = opt.nesterov
         assert(opt.reset_interval > 0)
+    elif str.lower(optimizer) == 'spsgd':
+        optimizer = 'spsgdpost'
+        pre_optimizer = 'spsgdpre'
+        save_prev_lr = False
+        optimizer_params['nesterov'] = opt.nesterov
+        assert(opt.reset_interval > 0)
     else:
         pre_optimizer = None
 
