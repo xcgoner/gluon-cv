@@ -37,16 +37,16 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
 
         self._pre_optimizer = pre_optimizer
 
-        super(Distributed2StepsTrainer, self).__init__(
-            params, optimizer, optimizer_params=optimizer_params, kvstore=None, update_on_kvstore = False)
-        
-        self._update_on_kvstore = False
-
         # ersgd
         self._sync_grad = sync_grad
         self._reset_interval = reset_interval
         self._reset_counter = 0
         self._sparse_ratio = sparse_ratio
+
+        super(Distributed2StepsTrainer, self).__init__(
+            params, optimizer, optimizer_params=optimizer_params, kvstore=None, update_on_kvstore = False)
+        
+        self._update_on_kvstore = False
 
         # efsgd
         self._save_prev_lr = save_prev_lr
