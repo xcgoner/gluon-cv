@@ -33,12 +33,14 @@ from horovod.mxnet.mpi_ops import allreduce_
 
 class Distributed2StepsTrainer(mx.gluon.Trainer):
     # only works with LocalAdaAlter
-    def __init__(self, params, optimizer, optimizer_params=None, sync_grad = True, reset_interval=0):
+    def __init__(self, params, optimizer, pre_optimizer=None, optimizer_params=None, sync_grad = True, reset_interval=0):
 
         super(Distributed2StepsTrainer, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None, update_on_kvstore = False)
         
         self._update_on_kvstore = False
+
+        self._pre_optimizer = pre_optimizer
 
         self._sync_grad = sync_grad
         self._reset_interval = reset_interval
@@ -68,10 +70,10 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
                             for _ in self._contexts]
 
         # for efsgd and signum
-        if 'pre_optimizer' in optimizer_params:
+        if self._pre_optimizer is not None:
             # debug
-            print('found a second optimizer:', optimizer_params['pre_optimizer'])
-            self._pre_optimizer = opt.create(optimizer_params['pre_optimizer'], param_dict=param_dict,
+            print('found a second optimizer:', self._pre_optimizer)
+            self._pre_optimizer = opt.create(self._pre_optimizer, param_dict=param_dict,
                                          **optimizer_params)
             self._pre_updaters = [opt.get_updater(self._pre_optimizer) \
                             for _ in self._contexts]

@@ -120,7 +120,9 @@ def main():
 
     if str.lower(optimizer) == 'signum':
         optimizer = 'signumpost'
-        optimizer_params['pre_optimizer'] = 'signumpre'
+        pre_optimizer = 'signumpre'
+    else:
+        pre_optimizer = None
 
     def test(ctx, val_data):
         metric = mx.metric.Accuracy()
@@ -160,6 +162,7 @@ def main():
         trainer = Distributed2StepsTrainer(
             net.collect_params(),  
             optimizer,
+            pre_optimizer, 
             optimizer_params)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
