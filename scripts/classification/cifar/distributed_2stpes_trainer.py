@@ -114,10 +114,10 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         if self._pre_optimizer is not None:
             self._pre_optimizer.set_learning_rate(self._optimizer.learning_rate)
 
-        # debug
-        if self._pre_optimizer.prev_lr != self._optimizer.learning_rate:
-            print(self._pre_optimizer.prev_lr / self._pre_optimizer.learning_rate)
-            print(self._optimizer.prev_lr / self._optimizer.learning_rate)
+        # # debug
+        # if self._pre_optimizer.prev_lr != self._optimizer.learning_rate:
+        #     print(self._pre_optimizer.prev_lr / self._pre_optimizer.learning_rate)
+        #     print(self._optimizer.prev_lr / self._optimizer.learning_rate)
 
         if not self._kv_initialized:
             self._init_kvstore()
