@@ -38,6 +38,10 @@ def parse_args():
                         help='learning rate. default is 0.1.')
     parser.add_argument('--momentum', type=float, default=0.9,
                         help='momentum value for optimizer, default is 0.9.')
+    parser.add_argument('--nesterov', action='store_true',
+                        help='use Nesterov momentum')
+    parser.add_argument('--reset-interval', type=int, default=0,
+                        help='period of error reset.')
     parser.add_argument('--wd', type=float, default=0.0001,
                         help='weight decay rate. default is 0.0001.')
     parser.add_argument('--lr-decay', type=float, default=0.1,
@@ -126,6 +130,12 @@ def main():
         optimizer = 'efsgdpost'
         pre_optimizer = 'efsgdpre'
         save_prev_lr = True
+    elif str.lower(optimizer) == 'ersgd':
+        optimizer = 'ersgdpost'
+        pre_optimizer = 'ersgdpre'
+        save_prev_lr = False
+        optimizer_params['nesterov'] = opt.nesterov
+        assert(opt.reset_interval > 0)
     else:
         pre_optimizer = None
 
@@ -169,7 +179,8 @@ def main():
             optimizer,
             pre_optimizer, 
             optimizer_params, 
-            save_prev_lr=save_prev_lr)
+            save_prev_lr=save_prev_lr,
+            reset_interval=opt.reset_interval)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})

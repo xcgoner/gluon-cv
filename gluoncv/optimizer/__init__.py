@@ -24,3 +24,5 @@ from .signum_post import *
 from .signum_pre import *
 from .efsgd_post import *
 from .efsgd_pre import *
+from .ersgd_post import *
+from .ersgd_pre import *
