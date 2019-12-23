@@ -72,7 +72,8 @@ class EFSGDPost(Optimizer):
         state[:] = grad
         sign(grad, out=grad)
         grad[:] *= (norm(state, ord=1) / state.size)
-        error[:] -= grad
+        # state is the error
+        state[:] -= grad
 
         # update
         weight[:] -= lr * grad
