@@ -80,7 +80,6 @@ class EFSGDPre(Optimizer):
         grad[:] += mom * self.momentum
 
         grad[:] += error * (self.prev_lr / lr)
-        # grad[:] += error
 
         # compress
         error[:] = grad

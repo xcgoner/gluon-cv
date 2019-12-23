@@ -67,7 +67,6 @@ class EFSGDPost(Optimizer):
         wd = self._get_wd(index)
 
         grad[:] += state * (self.prev_lr / lr)
-        # grad[:] += state
 
         # compress
         state[:] = grad
