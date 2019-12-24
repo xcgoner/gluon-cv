@@ -54,7 +54,6 @@ class SPSGDPost(Optimizer):
         super(SPSGDPost, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
         self.nesterov = nesterov
-        self.compressed_grad = dict()
         # debug
         if self.nesterov:
             print('use Nesterov momentum')

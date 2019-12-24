@@ -59,7 +59,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         # print(self._local_sgd_interval)
 
     def _init_optimizer(self, optimizer, optimizer_params):
-        param_dict = {i: param for i, param in enumerate(sorted(self._params, key=lambda p: p.name))}
+        param_dict = {i: param for i, param in enumerate(self._params)}
         if isinstance(optimizer, opt.Optimizer):
             assert not optimizer_params, \
                 "optimizer_params must be None if optimizer is an instance of " \
@@ -92,7 +92,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
                     # debug
                     print('use sparsity in ERSGD')
                     param_idx_list = []
-                    for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
+                    for i, param in enumerate(self._params):
                         if param.grad_req != 'null':
                             param_idx_list.append(i)
                     self._pre_optimizer.sparse_index_threshold = param_idx_list[round(len(param_idx_list)*self._sparse_ratio)]
@@ -140,7 +140,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         if self._pre_optimizer is not None:
             updates = [[] for _ in self._pre_updaters]
 
-            for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
+            for i, param in enumerate(self._params):
                 if param.grad_req == 'null':
                     continue
 
@@ -183,7 +183,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
 
     def _allreduce_grads(self):
         # sort needed for Python < 3.6 is not guaranteed
-        for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
+        for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 if self._sparse_ratio > 0 and i <= self._pre_optimizer.sparse_index_threshold:
                     # sparsity for ersgd
