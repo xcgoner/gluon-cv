@@ -112,6 +112,8 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
                             if param.grad_req != 'null':
                                 if i >= sparse_index_threshold:
                                     self._pre_optimizer.sparse_index.append(i)
+                    if hvd.rank() == 0:
+                        print('filter out {}:{}'.format(len(self._pre_optimizer.sparse_index), len(param_idx_list)))
             self._optimizer.sparse_index = self._pre_optimizer.sparse_index
         else:
             self._pre_optimizer = None
