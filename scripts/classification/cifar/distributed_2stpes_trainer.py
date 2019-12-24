@@ -54,6 +54,8 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
 
         self._hvd_param_buf = {}
 
+        self._count_bit = False
+
 
         # self._scale /= hvd.size()
 
@@ -191,8 +193,10 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
                 # print('local sgd')
                 self._reset_counter = 0
                 # synchronization
+                self._count_bit = True
                 self.allreduce_params()
                 self.allreduce_states()
+                self._count_bit = False
                 # indicate that the parameters are synchronized in the current iteration
                 return True
             return False
@@ -222,7 +226,8 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
                 if self._pre_optimizer is not None and (i in self._pre_optimizer.sparse_index or self._optimizer.compress):
                     hvd.allreduce_(param.list_data()[0], average=True, 
                                             name=str(len(self._params) + i), priority=-i)
-                    self._optimizer.bit_counter += (param.list_data()[0].size) * 32 * 2
+                    if self._count_bit:
+                        self._optimizer.bit_counter += (param.list_data()[0].size) * 32 * 2
                 # for j in range(1, len(param.list_data())):
                 #     param.list_data()[0].copyto(param.list_data()[j])
 
@@ -235,7 +240,8 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
                     if param._stype == 'default':
                         hvd.allreduce_(state_array, average=True, 
                                     name=str(idx), priority=i-len(self._params)*2)
-                        self._optimizer.bit_counter += (state_array.size) * 32 * 2
+                        if self._count_bit:
+                            self._optimizer.bit_counter += (state_array.size) * 32 * 2
                     else:
                         raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
