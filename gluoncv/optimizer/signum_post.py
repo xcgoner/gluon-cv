@@ -53,7 +53,7 @@ class SignumPost(Optimizer):
         self.momentum = momentum
         self.wd_lh = wd_lh
 
-        self.bit_counter = 0
+        self.bit_counter = 0.
 
     def create_state(self, index, weight):
         return None

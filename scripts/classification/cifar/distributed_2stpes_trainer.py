@@ -217,7 +217,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         """
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
-                if self._pre_optimizer is not None and i in self._pre_optimizer.sparse_index:
+                if self._pre_optimizer is not None and (i in self._pre_optimizer.sparse_index or self._optimizer.compress):
                     hvd.allreduce_(param.list_data()[0], average=True, 
                                             name=str(len(self._params) + i), priority=-i)
                     self._optimizer.bit_counter += (param.list_data()[0].size) * 32 * 2
@@ -227,7 +227,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
     def allreduce_states(self):
         for i, param in reversed(list(enumerate(self._params))):
             if param.grad_req != 'null':
-                if self._pre_optimizer is not None and i in self._pre_optimizer.sparse_index:
+                if self._pre_optimizer is not None and (i in self._pre_optimizer.sparse_index or self._optimizer.compress):
                     state_array = self._updaters[0].states[i]
                     idx = i+len(self._params)*2
                     if param._stype == 'default':

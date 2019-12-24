@@ -56,7 +56,7 @@ class ERSGDPost(Optimizer):
         self.nesterov = nesterov
         self.compressed_grad = dict()
         self.compress = compress
-        self.bit_counter = 0
+        self.bit_counter = 0.
         # debug
         if self.nesterov:
             print('use Nesterov momentum')

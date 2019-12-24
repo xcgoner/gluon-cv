@@ -54,7 +54,7 @@ class EFSGDPost(Optimizer):
         self.prev_lr = learning_rate
         self.compress = compress
 
-        self.bit_counter = 0
+        self.bit_counter = 0.
 
     def create_state(self, index, weight):
         momentum = None
