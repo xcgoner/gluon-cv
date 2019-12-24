@@ -199,7 +199,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         # sort needed for Python < 3.6 is not guaranteed
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
-                if self._sparse_ratio > 0 and i <= self._pre_optimizer.sparse_index_threshold:
+                if i in self._pre_optimizer.sparse_index:
                     # sparsity for ersgd
                     continue
                 allreduce_(param.list_grad()[0], average=True,
