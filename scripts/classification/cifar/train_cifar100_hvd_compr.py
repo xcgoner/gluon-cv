@@ -267,8 +267,8 @@ def main():
                 # net.save_parameters('%s/%.4f-cifar-%s-%d-best.params'%(save_dir, best_val_score, model_name, epoch))
 
             if rank == 0:
-                logging.info('[Epoch %d] train=%f val=%f loss=%f time: %f' %
-                    (epoch, acc, val_acc, train_loss, time.time()-tic))
+                logging.info('[Epoch %d] train=%f val=%f loss=%f time: %f, bits: %d' %
+                    (epoch, acc, val_acc, train_loss, time.time()-tic, trainer._optimizer.bit_counter))
 
                 if save_period and save_dir and (epoch + 1) % save_period == 0:
                     net.save_parameters('%s/cifar10-%s-%d.params'%(save_dir, model_name, epoch))
