@@ -32,7 +32,7 @@ def parse_args():
                         help='number of preprocessing workers')
     parser.add_argument('--num-epochs', type=int, default=200,
                         help='number of training epochs.')
-    parser.add_argument('--optimizer', type=str, default='sgd',
+    parser.add_argument('--optimizer', type=str, default='signum', choices=['signum', 'efsgd', 'ersgd'],
                         help='optimizer')
     parser.add_argument('--lr', type=float, default=0.1,
                         help='learning rate. default is 0.1.')
@@ -40,6 +40,8 @@ def parse_args():
                         help='momentum value for optimizer, default is 0.9.')
     parser.add_argument('--nesterov', action='store_true',
                         help='use Nesterov momentum')
+    parser.add_argument('--compress', action='store_true',
+                        help='use 1-bit compression')
     parser.add_argument('--reset-interval', type=int, default=0,
                         help='period of error reset.')
     parser.add_argument('--sparse-ratio', type=float, default=0,
@@ -134,11 +136,13 @@ def main():
         optimizer = 'efsgdpost'
         pre_optimizer = 'efsgdpre'
         save_prev_lr = True
+        optimizer_params['compress'] = opt.compress
     elif str.lower(optimizer) == 'ersgd':
         optimizer = 'ersgdpost'
         pre_optimizer = 'ersgdpre'
         save_prev_lr = False
         optimizer_params['nesterov'] = opt.nesterov
+        optimizer_params['compress'] = opt.compress
         assert(opt.reset_interval > 0)
     elif str.lower(optimizer) == 'spsgd':
         optimizer = 'spsgdpost'

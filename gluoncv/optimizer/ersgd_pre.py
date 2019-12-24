@@ -48,9 +48,11 @@ class ERSGDPre(Optimizer):
     eps: float, optional
         Initial value of the history accumulator. Avoids division by 0.
     """
-    def __init__(self, learning_rate=0.01, momentum=0.9, nesterov=False, **kwargs):
+    def __init__(self, learning_rate=0.01, momentum=0.9, nesterov=False, compress=True, **kwargs):
         super(ERSGDPre, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
+
+        self.compress = compress
 
     def create_state(self, index, weight):
         momentum = None
@@ -74,9 +76,12 @@ class ERSGDPre(Optimizer):
         # compress
         if index in self.sparse_index:
             state[:] = grad
-            grad *= 0
-        else:    
-            state[:] = grad
-            sign(grad, out=grad)
-            grad[:] *= (norm(state, ord=1) / state.size)
-            state[:] -= grad
+            grad[:] = 0
+        else:
+            if self.compress:
+                state[:] = grad
+                sign(grad, out=grad)
+                grad[:] *= (norm(state, ord=1) / state.size)
+                state[:] -= grad
+            else:
+                state[:] = 0

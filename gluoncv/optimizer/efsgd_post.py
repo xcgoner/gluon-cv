@@ -48,10 +48,13 @@ class EFSGDPost(Optimizer):
     eps: float, optional
         Initial value of the history accumulator. Avoids division by 0.
     """
-    def __init__(self, learning_rate=0.01, momentum=0.9, **kwargs):
+    def __init__(self, learning_rate=0.01, momentum=0.9, compress=True, **kwargs):
         super(EFSGDPost, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
         self.prev_lr = learning_rate
+        self.compress = compress
+
+        self.bit_counter = 0
 
     def create_state(self, index, weight):
         momentum = None
@@ -67,13 +70,21 @@ class EFSGDPost(Optimizer):
         wd = self._get_wd(index)
 
         grad[:] += state * (self.prev_lr / lr)
-
         # compress
-        state[:] = grad
-        sign(grad, out=grad)
-        grad[:] *= (norm(state, ord=1) / state.size)
-        # state is the error
-        state[:] -= grad
+        if index in self.sparse_index:
+            state[:] = grad
+            grad = 0
+        else: 
+            if self.compress:
+                state[:] = grad
+                sign(grad, out=grad)
+                grad[:] *= (norm(state, ord=1) / state.size)
+                # state is the error
+                state[:] -= grad
+                self.bit_counter += (state.size + 32) * 2
+            else:
+                state[:] = 0
+                self.bit_counter += (state.size) * 32 * 2
 
         # update
         weight[:] -= lr * grad

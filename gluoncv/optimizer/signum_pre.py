@@ -78,3 +78,4 @@ class SignumPre(Optimizer):
 
         # sign
         sign(grad, out=grad)
+

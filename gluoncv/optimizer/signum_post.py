@@ -53,6 +53,8 @@ class SignumPost(Optimizer):
         self.momentum = momentum
         self.wd_lh = wd_lh
 
+        self.bit_counter = 0
+
     def create_state(self, index, weight):
         return None
 
@@ -68,4 +70,6 @@ class SignumPost(Optimizer):
 
         # update
         weight[:] = (1-lr*self.wd_lh) * weight - lr * grad
+
+        self.bit_counter += (state.size) * 2
 

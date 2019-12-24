@@ -80,38 +80,39 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         if self._pre_optimizer is not None:
             # # debug
             # print('found a second optimizer:', self._pre_optimizer)
-            pre_optimizer_name = self._pre_optimizer
+            # pre_optimizer_name = self._pre_optimizer
             self._pre_optimizer = opt.create(self._pre_optimizer, param_dict=param_dict,
                                          **optimizer_params)
             self._pre_updaters = [opt.get_updater(self._pre_optimizer) \
                             for _ in self._contexts]
 
-            if str.lower(pre_optimizer_name).startswith('ersgd') or str.lower(pre_optimizer_name).startswith('spsgd'):
-                self._optimizer.pre_updater = self._pre_updaters[0]
-                # sparse compression
-                self._pre_optimizer.sparse_index = []
-                if self._sparse_ratio > 0:
-                    # debug
-                    print('use sparsity in ERSGD')
-                    param_idx_list = []
-                    for i, param in enumerate(self._params):
-                        if param.grad_req != 'null':
-                            param_idx_list.append(i)
-                    if self._sparse_ratio >= 1:
-                        self._pre_optimizer.sparse_index = param_idx_list
+            # if str.lower(pre_optimizer_name).startswith('ersgd') or str.lower(pre_optimizer_name).startswith('spsgd'):
+            self._optimizer.pre_updater = self._pre_updaters[0]
+            # sparse compression
+            self._pre_optimizer.sparse_index = []
+            if self._sparse_ratio > 0:
+                # debug
+                print('use sparsity in ERSGD')
+                param_idx_list = []
+                for i, param in enumerate(self._params):
+                    if param.grad_req != 'null':
+                        param_idx_list.append(i)
+                if self._sparse_ratio >= 1:
+                    self._pre_optimizer.sparse_index = param_idx_list
+                else:
+                    if self._sparse_lower:
+                        sparse_index_threshold = param_idx_list[round(len(param_idx_list)*self._sparse_ratio)]
+                        for i, param in enumerate(self._params):
+                            if param.grad_req != 'null':
+                                if i <= sparse_index_threshold:
+                                    self._pre_optimizer.sparse_index.append(i)
                     else:
-                        if self._sparse_lower:
-                            sparse_index_threshold = param_idx_list[round(len(param_idx_list)*self._sparse_ratio)]
-                            for i, param in enumerate(self._params):
-                                if param.grad_req != 'null':
-                                    if i <= sparse_index_threshold:
-                                        self._pre_optimizer.sparse_index.append(i)
-                        else:
-                            sparse_index_threshold = param_idx_list[round(len(param_idx_list)*(1-self._sparse_ratio))]
-                            for i, param in enumerate(self._params):
-                                if param.grad_req != 'null':
-                                    if i >= sparse_index_threshold:
-                                        self._pre_optimizer.sparse_index.append(i)
+                        sparse_index_threshold = param_idx_list[round(len(param_idx_list)*(1-self._sparse_ratio))]
+                        for i, param in enumerate(self._params):
+                            if param.grad_req != 'null':
+                                if i >= sparse_index_threshold:
+                                    self._pre_optimizer.sparse_index.append(i)
+                self._optimizer.sparse_index = self._pre_optimizer.sparse_index
         else:
             self._pre_optimizer = None
             self._pre_updaters = None
@@ -199,7 +200,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         # sort needed for Python < 3.6 is not guaranteed
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
-                if i in self._pre_optimizer.sparse_index:
+                if self._pre_optimizer is not None and i in self._pre_optimizer.sparse_index:
                     # sparsity for ersgd
                     continue
                 allreduce_(param.list_grad()[0], average=True,
@@ -214,23 +215,27 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         gradients to perform certain transformation, such as in gradient clipping, then
         you may want to manually call `allreduce_grads()` and `update()` separately.
         """
-        for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
+        for i, param in enumerate(self._params):
             if param.grad_req != 'null':
-                hvd.allreduce_(param.list_data()[0], average=True, 
-                                       name=str(len(self._params) + i), priority=-i)
+                if self._pre_optimizer is not None and i in self._pre_optimizer.sparse_index:
+                    hvd.allreduce_(param.list_data()[0], average=True, 
+                                            name=str(len(self._params) + i), priority=-i)
+                    self._optimizer.bit_counter += (param.list_data()[0].size) * 32 * 2
                 # for j in range(1, len(param.list_data())):
                 #     param.list_data()[0].copyto(param.list_data()[j])
 
     def allreduce_states(self):
         for i, param in reversed(list(enumerate(self._params))):
             if param.grad_req != 'null':
-                state_array = self._updaters[0].states[i]
-                idx = i+len(self._params)*2
-                if param._stype == 'default':
-                    hvd.allreduce_(state_array, average=True, 
-                                   name=str(idx), priority=i-len(self._params)*2)
-                else:
-                    raise ValueError("Cannot pull row_sparse parameters for local SGD")
+                if self._pre_optimizer is not None and i in self._pre_optimizer.sparse_index:
+                    state_array = self._updaters[0].states[i]
+                    idx = i+len(self._params)*2
+                    if param._stype == 'default':
+                        hvd.allreduce_(state_array, average=True, 
+                                    name=str(idx), priority=i-len(self._params)*2)
+                        self._optimizer.bit_counter += (state_array.size) * 32 * 2
+                    else:
+                        raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
     # def init_states(self):
     #     # self._hvd_param_buf = {}

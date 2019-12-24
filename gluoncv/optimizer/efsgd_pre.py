@@ -48,10 +48,11 @@ class EFSGDPre(Optimizer):
     eps: float, optional
         Initial value of the history accumulator. Avoids division by 0.
     """
-    def __init__(self, learning_rate=0.01, momentum=0.9, **kwargs):
+    def __init__(self, learning_rate=0.01, momentum=0.9, compress=True, **kwargs):
         super(EFSGDPre, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
         self.prev_lr = learning_rate
+        self.compress = compress
 
     def create_state(self, index, weight):
         momentum = None
@@ -78,11 +79,17 @@ class EFSGDPre(Optimizer):
         mom[:] *= self.momentum
         mom[:] += grad
         grad[:] += mom * self.momentum
-
         grad[:] += error * (self.prev_lr / lr)
 
         # compress
-        error[:] = grad
-        sign(grad, out=grad)
-        grad[:] *= (norm(error, ord=1) / error.size)
-        error[:] -= grad
+        if index in self.sparse_index:
+            error[:] = grad
+            grad = 0
+        else: 
+            if self.compress:
+                error[:] = grad
+                sign(grad, out=grad)
+                grad[:] *= (norm(error, ord=1) / error.size)
+                error[:] -= grad
+            else:
+                error[:] = 0
