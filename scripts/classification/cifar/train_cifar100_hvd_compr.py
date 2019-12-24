@@ -44,6 +44,8 @@ def parse_args():
                         help='period of error reset.')
     parser.add_argument('--sparse-ratio', type=float, default=0,
                         help='propotion of sparsity')
+    parser.add_argument('--sparse-lower', action='store_true',
+                        help='sparsify lower or higher layers')
     parser.add_argument('--wd', type=float, default=0.0001,
                         help='weight decay rate. default is 0.0001.')
     parser.add_argument('--lr-decay', type=float, default=0.1,
@@ -189,7 +191,8 @@ def main():
             optimizer_params, 
             save_prev_lr=save_prev_lr,
             reset_interval=opt.reset_interval,
-            sparse_ratio=opt.sparse_ratio)
+            sparse_ratio=opt.sparse_ratio,
+            sparse_lower=opt.sparse_lower)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})

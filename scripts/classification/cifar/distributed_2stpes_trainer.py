@@ -33,7 +33,7 @@ from horovod.mxnet.mpi_ops import allreduce_
 
 class Distributed2StepsTrainer(mx.gluon.Trainer):
     # only works with LocalAdaAlter
-    def __init__(self, params, optimizer, pre_optimizer=None, optimizer_params=None, sync_grad = True, reset_interval=0, save_prev_lr=False, sparse_ratio=0):
+    def __init__(self, params, optimizer, pre_optimizer=None, optimizer_params=None, sync_grad = True, reset_interval=0, save_prev_lr=False, sparse_ratio=0, sparse_lower=True):
 
         self._pre_optimizer = pre_optimizer
 
@@ -42,6 +42,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         self._reset_interval = reset_interval
         self._reset_counter = 0
         self._sparse_ratio = sparse_ratio
+        self._sparse_lower = sparse_lower
 
         super(Distributed2StepsTrainer, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None, update_on_kvstore = False)
@@ -59,7 +60,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         # print(self._local_sgd_interval)
 
     def _init_optimizer(self, optimizer, optimizer_params):
-        param_dict = {i: param for i, param in enumerate(sorted(self._params, key=lambda p: p.name))}
+        param_dict = {i: param for i, param in enumerate(self._params)}
         if isinstance(optimizer, opt.Optimizer):
             assert not optimizer_params, \
                 "optimizer_params must be None if optimizer is an instance of " \
@@ -88,16 +89,29 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
             if str.lower(pre_optimizer_name).startswith('ersgd') or str.lower(pre_optimizer_name).startswith('spsgd'):
                 self._optimizer.pre_updater = self._pre_updaters[0]
                 # sparse compression
+                self._pre_optimizer.sparse_index = []
                 if self._sparse_ratio > 0:
                     # debug
                     print('use sparsity in ERSGD')
                     param_idx_list = []
-                    for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
+                    for i, param in enumerate(self._params):
                         if param.grad_req != 'null':
                             param_idx_list.append(i)
-                    self._pre_optimizer.sparse_index_threshold = param_idx_list[round(len(param_idx_list)*self._sparse_ratio)]
-                else:
-                    self._pre_optimizer.sparse_index_threshold = -1
+                    if self._sparse_ratio >= 1:
+                        self._pre_optimizer.sparse_index = param_idx_list
+                    else:
+                        if self._sparse_lower:
+                            sparse_index_threshold = param_idx_list[round(len(param_idx_list)*self._sparse_ratio)]
+                            for i, param in enumerate(self._params):
+                                if param.grad_req != 'null':
+                                    if i <= sparse_index_threshold:
+                                        self._pre_optimizer.sparse_index.append(i)
+                        else:
+                            sparse_index_threshold = param_idx_list[round(len(param_idx_list)*(1-self._sparse_ratio))]
+                            for i, param in enumerate(self._params):
+                                if param.grad_req != 'null':
+                                    if i >= sparse_index_threshold:
+                                        self._pre_optimizer.sparse_index.append(i)
         else:
             self._pre_optimizer = None
             self._pre_updaters = None
@@ -140,7 +154,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
         if self._pre_optimizer is not None:
             updates = [[] for _ in self._pre_updaters]
 
-            for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
+            for i, param in enumerate(self._params):
                 if param.grad_req == 'null':
                     continue
 
@@ -183,7 +197,7 @@ class Distributed2StepsTrainer(mx.gluon.Trainer):
 
     def _allreduce_grads(self):
         # sort needed for Python < 3.6 is not guaranteed
-        for i, param in enumerate(sorted(self._params, key=lambda p: p.name)):
+        for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 if self._sparse_ratio > 0 and i <= self._pre_optimizer.sparse_index_threshold:
                     # sparsity for ersgd
