@@ -72,7 +72,7 @@ class ERSGDPre(Optimizer):
             grad[:] += (weight * wd)
 
         # compress
-        if index is in self.sparse_index:
+        if index in self.sparse_index:
             state[:] = grad
             grad *= 0
         else:    
