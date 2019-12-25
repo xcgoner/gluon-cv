@@ -50,6 +50,8 @@ def parse_args():
                         help='sparsify lower or higher layers')
     parser.add_argument('--wd', type=float, default=0.0001,
                         help='weight decay rate. default is 0.0001.')
+    parser.add_argument('--warmup', type=int, default=5,
+                        help='warmup epochs.')
     parser.add_argument('--lr-decay', type=float, default=0.1,
                         help='decay rate of learning rate. default is 0.1.')
     parser.add_argument('--lr-decay-period', type=int, default=0,
@@ -225,6 +227,9 @@ def main():
             train_loss = 0
             num_batch = len(train_data)
             alpha = 1
+
+            if epoch < opt.warmup: 
+                trainer.set_learning_rate(opt.lr / (opt.warmup - epoch))
 
             if epoch == lr_decay_epoch[lr_decay_count]:
                 trainer.set_learning_rate(trainer.learning_rate*lr_decay)
