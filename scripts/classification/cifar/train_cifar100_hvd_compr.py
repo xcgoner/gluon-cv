@@ -116,7 +116,7 @@ def main():
     logging.basicConfig(
         level=logging.INFO,
         handlers=[
-            logging.FileHandler("train_cifar100_{}_{}_{}_{}_{}_{}_{}_{}.log".format(opt.optimizer, opt.batch_size, opt.lr, opt.nesterov, opt.compress, opt.reset_interval, opt.sparse_ratio, opt.sparse_lower)),
+            logging.FileHandler("train_cifar100_{}_{}_{}_{}_{}_{}_{}_{}_{}.log".format(opt.model, opt.optimizer, opt.batch_size, opt.lr, opt.nesterov, opt.compress, opt.reset_interval, opt.sparse_ratio, opt.sparse_lower)),
             logging.StreamHandler()
         ])
     logging.info(opt)
