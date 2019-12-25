@@ -109,7 +109,7 @@ def main():
         save_dir = ''
         save_period = 0
 
-    plot_path = opt.save_plot_dir
+    # plot_path = opt.save_plot_dir
 
     logging.basicConfig(level=logging.INFO)
     
