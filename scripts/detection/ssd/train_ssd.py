@@ -130,7 +130,7 @@ def get_dataloader(net, train_dataset, val_dataset, data_shape, batch_size, num_
     if horovod:
         train_loader = gluon.data.DataLoader(
             train_dataset.transform(SSDDefaultTrainTransform(width, height, anchors)),
-            batch_size, True, 
+            batch_size, 
             sampler=SplitSampler(len(train_dataset), num_parts=hvd.size(), part_index=hvd.rank()),
             batchify_fn=batchify_fn, last_batch='rollover', num_workers=num_workers)
     else:
