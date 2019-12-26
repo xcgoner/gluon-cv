@@ -22,6 +22,8 @@ from gluoncv.utils.metrics.voc_detection import VOC07MApMetric
 from gluoncv.utils.metrics.coco_detection import COCODetectionMetric
 from gluoncv.utils.metrics.accuracy import Accuracy
 
+from gluoncv.data.sampler import SplitSampler
+
 from mxnet.contrib import amp
 
 try:
@@ -117,7 +119,7 @@ def get_dataset(dataset, args):
         raise NotImplementedError('Dataset: {} not implemented.'.format(dataset))
     return train_dataset, val_dataset, val_metric
 
-def get_dataloader(net, train_dataset, val_dataset, data_shape, batch_size, num_workers, ctx):
+def get_dataloader(net, train_dataset, val_dataset, data_shape, batch_size, num_workers, ctx, horovod):
     """Get dataloader."""
     width, height = data_shape, data_shape
     # use fake data to generate fixed anchors for target generation
@@ -125,9 +127,16 @@ def get_dataloader(net, train_dataset, val_dataset, data_shape, batch_size, num_
         _, _, anchors = net(mx.nd.zeros((1, 3, height, width), ctx))
     anchors = anchors.as_in_context(mx.cpu())
     batchify_fn = Tuple(Stack(), Stack(), Stack())  # stack image, cls_targets, box_targets
-    train_loader = gluon.data.DataLoader(
-        train_dataset.transform(SSDDefaultTrainTransform(width, height, anchors)),
-        batch_size, True, batchify_fn=batchify_fn, last_batch='rollover', num_workers=num_workers)
+    if horovod:
+        train_loader = gluon.data.DataLoader(
+            train_dataset.transform(SSDDefaultTrainTransform(width, height, anchors)),
+            batch_size, True, 
+            sampler=SplitSampler(len(train_dataset), num_parts=hvd.size(), part_index=hvd.rank()),
+            batchify_fn=batchify_fn, last_batch='rollover', num_workers=num_workers)
+    else:
+        train_loader = gluon.data.DataLoader(
+            train_dataset.transform(SSDDefaultTrainTransform(width, height, anchors)),
+            batch_size, True, batchify_fn=batchify_fn, last_batch='rollover', num_workers=num_workers)
     val_batchify_fn = Tuple(Stack(), Pad(pad_val=-1))
     val_loader = gluon.data.DataLoader(
         val_dataset.transform(SSDDefaultValTransform(width, height)),
@@ -409,7 +418,7 @@ if __name__ == '__main__':
         train_dataset, val_dataset, eval_metric = get_dataset(args.dataset, args)
         batch_size = (args.batch_size // hvd.size()) if args.horovod else args.batch_size
         train_data, val_data = get_dataloader(
-            async_net, train_dataset, val_dataset, args.data_shape, batch_size, args.num_workers, ctx[0])
+            async_net, train_dataset, val_dataset, args.data_shape, batch_size, args.num_workers, ctx[0], args.horovod)
 
 
 

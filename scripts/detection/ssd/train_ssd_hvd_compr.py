@@ -138,7 +138,9 @@ def get_dataloader(net, train_dataset, val_dataset, data_shape, batch_size, num_
     batchify_fn = Tuple(Stack(), Stack(), Stack())  # stack image, cls_targets, box_targets
     train_loader = gluon.data.DataLoader(
         train_dataset.transform(SSDDefaultTrainTransform(width, height, anchors)),
-        batch_size, True, batchify_fn=batchify_fn, last_batch='rollover', num_workers=num_workers)
+        batch_size, True, 
+        sampler=SplitSampler(len(train_dataset), num_parts=hvd.size(), part_index=hvd.rank()),
+        batchify_fn=batchify_fn, last_batch='rollover', num_workers=num_workers)
     val_batchify_fn = Tuple(Stack(), Pad(pad_val=-1))
     val_loader = gluon.data.DataLoader(
         val_dataset.transform(SSDDefaultValTransform(width, height)),
