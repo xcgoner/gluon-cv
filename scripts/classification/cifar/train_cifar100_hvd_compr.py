@@ -19,7 +19,7 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
-from distributed_2stpes_trainer import Distributed2StepsTrainer
+from gluoncv.trainer.distributed_2stpes_trainer import Distributed2StepsTrainer
 
 # CLI
 def parse_args():

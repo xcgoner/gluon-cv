@@ -29,3 +29,4 @@ from . import nn
 from . import utils
 from . import loss
 from . import optimizer
+from . import trainer
