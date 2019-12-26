@@ -142,7 +142,7 @@ def get_dataloader(net, train_dataset, val_dataset, data_shape, global_batch_siz
     val_batchify_fn = Tuple(Stack(), Pad(pad_val=-1))
     val_loader = gluon.data.DataLoader(
         val_dataset.transform(SSDDefaultValTransform(width, height)),
-        global_batch_size, False, batchify_fn=val_batchify_fn, last_batch='keep', num_workers=num_workers)
+        batch_size, False, batchify_fn=val_batchify_fn, last_batch='keep', num_workers=num_workers)
     return train_loader, val_loader
 
 def get_dali_dataset(dataset_name, devices, args):
