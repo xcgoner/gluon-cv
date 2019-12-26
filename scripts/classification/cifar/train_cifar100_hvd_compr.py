@@ -113,14 +113,13 @@ def main():
 
     # plot_path = opt.save_plot_dir
 
-    logging.basicConfig(level=logging.INFO)
-    
-    logging.basicConfig(
-        level=logging.INFO,
-        handlers=[
-            logging.FileHandler("train_cifar100_{}_{}_{}_{}_{}_{}_{}_{}_{}.log".format(opt.model, opt.optimizer, opt.batch_size, opt.lr, opt.nesterov, opt.compress, opt.reset_interval, opt.sparse_ratio, opt.sparse_lower)),
-            logging.StreamHandler()
-        ])
+    logging.basicConfig(level=logging.INFO,
+                    filename="train_cifar100_{}_{}_{}_{}_{}_{}_{}_{}_{}.log".format(opt.model, opt.optimizer, opt.batch_size, opt.lr, opt.nesterov, opt.compress, opt.reset_interval, opt.sparse_ratio, opt.sparse_lower),
+                    filemode='a')
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    logging.getLogger('').addHandler(console)
+
     logging.info(opt)
 
     transform_train = transforms.Compose([
