@@ -2,7 +2,8 @@
 # Code partially borrowed from https://github.com/r1ch88/SlowFastNetworks.
 
 __all__ = ['SlowFast', 'slowfast_4x16_resnet50_kinetics400', 'slowfast_8x8_resnet50_kinetics400',
-           'slowfast_8x8_resnet101_kinetics400', 'slowfast_16x8_resnet101_kinetics400']
+           'slowfast_8x8_resnet101_kinetics400', 'slowfast_16x8_resnet101_kinetics400',
+           'slowfast_16x8_resnet101_50_50_kinetics400']
 
 from mxnet import init
 from mxnet.context import cpu
@@ -66,8 +67,11 @@ class SlowFast(HybridBlock):
                  nclass,
                  block=Bottleneck,
                  layers=None,
+                 num_block_temp_kernel_fast=None,
+                 num_block_temp_kernel_slow=None,
                  pretrained=False,
                  pretrained_base=False,
+                 feat_ext=False,
                  num_segments=1,
                  num_crop=1,
                  bn_eval=True,
@@ -107,6 +111,7 @@ class SlowFast(HybridBlock):
         self.fast_temporal_stride = fast_temporal_stride
         self.slow_frames = slow_frames
         self.fast_frames = fast_frames
+        self.feat_ext = feat_ext
 
         with self.name_scope():
             # build fast pathway
@@ -136,6 +141,7 @@ class SlowFast(HybridBlock):
             self.fast_res4 = self._make_layer_fast(inplanes=self.width_per_group * 8 // self.beta_inv,
                                                    planes=self.dim_inner * 4 // self.beta_inv,
                                                    num_blocks=layers[2],
+                                                   num_block_temp_kernel_fast=num_block_temp_kernel_fast,
                                                    strides=2,
                                                    head_conv=3,
                                                    norm_layer=norm_layer,
@@ -226,6 +232,7 @@ class SlowFast(HybridBlock):
             self.slow_res4 = self._make_layer_slow(inplanes=self.width_per_group * 8 + self.width_per_group * 8 // self.out_dim_ratio,
                                                    planes=self.dim_inner * 4,
                                                    num_blocks=layers[2],
+                                                   num_block_temp_kernel_slow=num_block_temp_kernel_slow,
                                                    strides=2,
                                                    head_conv=3,
                                                    norm_layer=norm_layer,
@@ -259,6 +266,9 @@ class SlowFast(HybridBlock):
         # segmental consensus
         x = F.reshape(x, shape=(-1, self.num_segments * self.num_crop, self.feat_dim))
         x = F.mean(x, axis=1)
+
+        if self.feat_ext:
+            return x
 
         x = self.dp(x)
         x = self.fc(x)                                  # bxnclass
@@ -315,6 +325,7 @@ class SlowFast(HybridBlock):
                          inplanes,
                          planes,
                          num_blocks,
+                         num_block_temp_kernel_fast=None,
                          block=Bottleneck,
                          strides=1,
                          head_conv=1,
@@ -345,10 +356,22 @@ class SlowFast(HybridBlock):
             inplanes = planes * block.expansion
             cnt += 1
             for _ in range(1, num_blocks):
-                layers.add(block(inplanes=inplanes,
-                                 planes=planes,
-                                 head_conv=head_conv,
-                                 layer_name='block%d_' % cnt))
+                if num_block_temp_kernel_fast is not None:
+                    if cnt < num_block_temp_kernel_fast:
+                        layers.add(block(inplanes=inplanes,
+                                         planes=planes,
+                                         head_conv=head_conv,
+                                         layer_name='block%d_' % cnt))
+                    else:
+                        layers.add(block(inplanes=inplanes,
+                                         planes=planes,
+                                         head_conv=1,
+                                         layer_name='block%d_' % cnt))
+                else:
+                    layers.add(block(inplanes=inplanes,
+                                     planes=planes,
+                                     head_conv=head_conv,
+                                     layer_name='block%d_' % cnt))
                 cnt += 1
         return layers
 
@@ -356,6 +379,7 @@ class SlowFast(HybridBlock):
                          inplanes,
                          planes,
                          num_blocks,
+                         num_block_temp_kernel_slow=None,
                          block=Bottleneck,
                          strides=1,
                          head_conv=1,
@@ -385,16 +409,28 @@ class SlowFast(HybridBlock):
             inplanes = planes * block.expansion
             cnt += 1
             for _ in range(1, num_blocks):
-                layers.add(block(inplanes=inplanes,
-                                 planes=planes,
-                                 head_conv=head_conv,
-                                 layer_name='block%d_' % cnt))
+                if num_block_temp_kernel_slow is not None:
+                    if cnt < num_block_temp_kernel_slow:
+                        layers.add(block(inplanes=inplanes,
+                                         planes=planes,
+                                         head_conv=head_conv,
+                                         layer_name='block%d_' % cnt))
+                    else:
+                        layers.add(block(inplanes=inplanes,
+                                         planes=planes,
+                                         head_conv=1,
+                                         layer_name='block%d_' % cnt))
+                else:
+                    layers.add(block(inplanes=inplanes,
+                                     planes=planes,
+                                     head_conv=head_conv,
+                                     layer_name='block%d_' % cnt))
                 cnt += 1
         return layers
 
 def slowfast_4x16_resnet50_kinetics400(nclass=400, pretrained=False, pretrained_base=True,
                                        use_tsn=False, num_segments=1, num_crop=1,
-                                       partial_bn=False,
+                                       partial_bn=False, feat_ext=False,
                                        root='~/.mxnet/models', ctx=cpu(), **kwargs):
     r"""SlowFast networks (SlowFast) from
     `"SlowFast Networks for Video Recognition"
@@ -423,6 +459,7 @@ def slowfast_4x16_resnet50_kinetics400(nclass=400, pretrained=False, pretrained_
                      layers=[3, 4, 6, 3],
                      pretrained=pretrained,
                      pretrained_base=pretrained_base,
+                     feat_ext=feat_ext,
                      num_segments=num_segments,
                      num_crop=num_crop,
                      partial_bn=partial_bn,
@@ -452,7 +489,7 @@ def slowfast_4x16_resnet50_kinetics400(nclass=400, pretrained=False, pretrained_
 
 def slowfast_8x8_resnet50_kinetics400(nclass=400, pretrained=False, pretrained_base=True,
                                       use_tsn=False, num_segments=1, num_crop=1,
-                                      partial_bn=False,
+                                      partial_bn=False, feat_ext=False,
                                       root='~/.mxnet/models', ctx=cpu(), **kwargs):
     r"""SlowFast networks (SlowFast) from
     `"SlowFast Networks for Video Recognition"
@@ -481,6 +518,7 @@ def slowfast_8x8_resnet50_kinetics400(nclass=400, pretrained=False, pretrained_b
                      layers=[3, 4, 6, 3],
                      pretrained=pretrained,
                      pretrained_base=pretrained_base,
+                     feat_ext=feat_ext,
                      num_segments=num_segments,
                      num_crop=num_crop,
                      partial_bn=partial_bn,
@@ -510,7 +548,7 @@ def slowfast_8x8_resnet50_kinetics400(nclass=400, pretrained=False, pretrained_b
 
 def slowfast_8x8_resnet101_kinetics400(nclass=400, pretrained=False, pretrained_base=True,
                                        use_tsn=False, num_segments=1, num_crop=1,
-                                       partial_bn=False,
+                                       partial_bn=False, feat_ext=False,
                                        root='~/.mxnet/models', ctx=cpu(), **kwargs):
     r"""SlowFast networks (SlowFast) from
     `"SlowFast Networks for Video Recognition"
@@ -539,6 +577,7 @@ def slowfast_8x8_resnet101_kinetics400(nclass=400, pretrained=False, pretrained_
                      layers=[3, 4, 23, 3],
                      pretrained=pretrained,
                      pretrained_base=pretrained_base,
+                     feat_ext=feat_ext,
                      num_segments=num_segments,
                      num_crop=num_crop,
                      partial_bn=partial_bn,
@@ -568,7 +607,7 @@ def slowfast_8x8_resnet101_kinetics400(nclass=400, pretrained=False, pretrained_
 
 def slowfast_16x8_resnet101_kinetics400(nclass=400, pretrained=False, pretrained_base=True,
                                         use_tsn=False, num_segments=1, num_crop=1,
-                                        partial_bn=False,
+                                        partial_bn=False, feat_ext=False,
                                         root='~/.mxnet/models', ctx=cpu(), **kwargs):
     r"""SlowFast networks (SlowFast) from
     `"SlowFast Networks for Video Recognition"
@@ -597,6 +636,7 @@ def slowfast_16x8_resnet101_kinetics400(nclass=400, pretrained=False, pretrained
                      layers=[3, 4, 23, 3],
                      pretrained=pretrained,
                      pretrained_base=pretrained_base,
+                     feat_ext=feat_ext,
                      num_segments=num_segments,
                      num_crop=num_crop,
                      partial_bn=partial_bn,
@@ -616,6 +656,67 @@ def slowfast_16x8_resnet101_kinetics400(nclass=400, pretrained=False, pretrained
     if pretrained:
         from ..model_store import get_model_file
         model.load_parameters(get_model_file('slowfast_16x8_resnet101_kinetics400',
+                                             tag=pretrained, root=root), ctx=ctx)
+        from ...data import Kinetics400Attr
+        attrib = Kinetics400Attr()
+        model.classes = attrib.classes
+    model.collect_params().reset_ctx(ctx)
+
+    return model
+
+def slowfast_16x8_resnet101_50_50_kinetics400(nclass=400, pretrained=False, pretrained_base=True,
+                                              use_tsn=False, num_segments=1, num_crop=1,
+                                              partial_bn=False, feat_ext=False,
+                                              root='~/.mxnet/models', ctx=cpu(), **kwargs):
+    r"""SlowFast networks (SlowFast) from
+    `"SlowFast Networks for Video Recognition"
+    <https://arxiv.org/abs/1812.03982>`_ paper.
+
+    Parameters
+    ----------
+    pretrained : bool or str
+        Boolean value controls whether to load the default pretrained weights for model.
+        String value represents the hashtag for a certain version of pretrained weights.
+    ctx : Context, default CPU
+        The context in which to load the pretrained weights.
+    root : str, default $MXNET_HOME/models
+        Location for keeping the model parameters.
+    partial_bn : bool, default False
+        Freeze all batch normalization layers during training except the first layer.
+    norm_layer : object
+        Normalization layer used (default: :class:`mxnet.gluon.nn.BatchNorm`)
+        Can be :class:`mxnet.gluon.nn.BatchNorm` or :class:`mxnet.gluon.contrib.nn.SyncBatchNorm`.
+    norm_kwargs : dict
+        Additional `norm_layer` arguments, for example `num_devices=4`
+        for :class:`mxnet.gluon.contrib.nn.SyncBatchNorm`.
+    """
+
+    model = SlowFast(nclass=nclass,
+                     layers=[3, 4, 23, 3],
+                     num_block_temp_kernel_fast=6,
+                     num_block_temp_kernel_slow=6,
+                     pretrained=pretrained,
+                     pretrained_base=pretrained_base,
+                     feat_ext=feat_ext,
+                     num_segments=num_segments,
+                     num_crop=num_crop,
+                     partial_bn=partial_bn,
+                     alpha=4,
+                     beta_inv=8,
+                     fusion_conv_channel_ratio=2,
+                     fusion_kernel_size=5,
+                     width_per_group=64,
+                     num_groups=1,
+                     slow_temporal_stride=8,
+                     fast_temporal_stride=2,
+                     slow_frames=16,
+                     fast_frames=64,
+                     ctx=ctx,
+                     **kwargs)
+
+    if pretrained:
+        from ..model_store import get_model_file
+        model.load_parameters(get_model_file('slowfast_16x8_resnet101_50_50_kinetics400',
                                              tag=pretrained, root=root), ctx=ctx)
         from ...data import Kinetics400Attr
         attrib = Kinetics400Attr()
