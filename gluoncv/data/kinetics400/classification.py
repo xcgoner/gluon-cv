@@ -1,6 +1,7 @@
 # pylint: disable=line-too-long,too-many-lines,missing-docstring
 """Kinetics400 action classification dataset.
-Code partially borrowed from https://github.com/open-mmlab/mmaction."""
+Code partially borrowed from https://github.com/open-mmlab/mmaction.
+Code partially borrowed from https://github.com/bryanyzhu/two-stream-pytorch"""
 import os
 import numpy as np
 from mxnet import nd
@@ -139,11 +140,18 @@ class Kinetics400(dataset.Dataset):
 
         directory, duration, target = self.clips[index]
         if self.video_loader:
+            if '.' in directory.split('/')[-1]:
+                # data in the "setting" file already have extension, e.g., demo.mp4
+                video_name = directory
+            else:
+                # data in the "setting" file do not have extension, e.g., demo
+                # So we need to provide extension (i.e., .mp4) to complete the file name.
+                video_name = '{}.{}'.format(directory, self.video_ext)
             if self.use_decord:
-                decord_vr = self.decord.VideoReader('{}.{}'.format(directory, self.video_ext), width=self.new_width, height=self.new_height)
+                decord_vr = self.decord.VideoReader(video_name, width=self.new_width, height=self.new_height)
                 duration = len(decord_vr)
             else:
-                mmcv_vr = self.mmcv.VideoReader('{}.{}'.format(directory, self.video_ext))
+                mmcv_vr = self.mmcv.VideoReader(video_name)
                 duration = len(mmcv_vr)
 
         if self.train and not self.test_mode:
@@ -368,9 +376,9 @@ class Kinetics400(dataset.Dataset):
             offset = int(seg_ind)
             for i, _ in enumerate(range(0, self.skip_length, self.new_step)):
                 if offset + skip_offsets[i] <= duration:
-                    frame_id = offset + skip_offsets[i]
+                    frame_id = offset + skip_offsets[i] - 1
                 else:
-                    frame_id = offset
+                    frame_id = offset - 1
                 frame_id_list.append(frame_id)
                 if offset + self.new_step < duration:
                     offset += self.new_step
@@ -390,9 +398,9 @@ class Kinetics400(dataset.Dataset):
             offset = int(seg_ind)
             for i, _ in enumerate(range(0, self.skip_length, self.new_step)):
                 if offset + skip_offsets[i] <= duration:
-                    frame_id = offset + skip_offsets[i]
+                    frame_id = offset + skip_offsets[i] - 1
                 else:
-                    frame_id = offset
+                    frame_id = offset - 1
 
                 if (i + 1) % self.fast_temporal_stride == 0:
                     fast_id_list.append(frame_id)

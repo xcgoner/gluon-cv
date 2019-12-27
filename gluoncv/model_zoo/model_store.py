@@ -4,6 +4,8 @@ from __future__ import print_function
 __all__ = ['get_model_file', 'purge']
 import os
 import zipfile
+import logging
+import portalocker
 
 from ..utils import download, check_sha1
 
@@ -24,7 +26,7 @@ _model_sha1 = {name: checksum for checksum, name in [
     ('0803818513599fa1329524ee3607b708b4a4630f', 'mobilenetv2_0.5'),
     ('9b1d2cc38fed4cd171a7f7a0d17fe1a905573887', 'mobilenetv2_0.25'),
     ('eaa44578554ddffaf2a2630ced9093181ff79688', 'mobilenetv3_large'),
-    ('33c100a740c0a278ec06e8640b19f52b744d1f11', 'mobilenetv3_small'),
+    ('10430433698d18f49991e4a366c9fce8f9286298', 'mobilenetv3_small'),
     ('a0666292f0a30ff61f857b0b66efc0228eb6a54b', 'resnet18_v1'),
     ('48216ba99a8b1005d75c0f3a0c422301a0473233', 'resnet34_v1'),
     ('cc729d95031ca98cf2ff362eb57dee4d9994e4b2', 'resnet50_v1'),
@@ -106,7 +108,7 @@ _model_sha1 = {name: checksum for checksum, name in [
     ('2c2f4e1c2b11461b52598a4b2038bccbcfc166eb', 'psp_resnet101_voc'),
     ('3f220f537400dfa607c3d041ed3b172db39b0b01', 'psp_resnet50_ade'),
     ('240a4758b506447faf7c55cd7a7837d66f5039a6', 'psp_resnet101_ade'),
-    ('0f49fb59180c4d91305b858380a4fd6eaf068b6c', 'psp_resnet101_citys'),
+    ('d0e8603120ab02118a8973d52a26b8296d1b4078', 'psp_resnet101_citys'),
     ('ef2bb40ad8f8f59f451969b2fabe4e548394e80a', 'deeplab_v3b_plus_wideresnet_citys'),
     ('f5ece5ce1422eeca3ce2908004e469ffdf91fd41', 'yolo3_darknet53_voc'),
     ('3b47835ac3dd80f29576633949aa58aee3094353', 'yolo3_mobilenet1.0_voc'),
@@ -132,7 +134,7 @@ _model_sha1 = {name: checksum for checksum, name in [
     ('b399bac75ebbd1b9d04a16906bddc64f1e33496b', 'mobile_pose_mobilenet1.0'),
     ('4acdc130ebee695b1181fb7e4eee8f2c4d91a614', 'mobile_pose_mobilenetv2_1.0'),
     ('1ca004dc5ab2bd0e10d782734d3efbefff23180c', 'mobile_pose_mobilenetv3_large'),
-    ('b1b148a9650cd5dbed07e3177436185fec1da5b7', 'mobile_pose_mobilenetv3_small'),
+    ('c2a11fae8970c2c2e79e2b77a4c4d62e3d3e054f', 'mobile_pose_mobilenetv3_small'),
     ('54f7742b1f8939ef8e59ede3469bfa5eb6e247fa', 'resnet18_v1b_2.6x'),
     ('a230c33f7966ab761597328686b28d0545e4ea30', 'resnet50_v1d_1.8x'),
     ('0d3e69bb033d1375c3734419bbc653c3a474ea53', 'resnet50_v1d_3.6x'),
@@ -151,10 +153,17 @@ _model_sha1 = {name: checksum for checksum, name in [
     ('bbd4185a823a3af2741b033db81dd6e35fc04bac', 'i3d_inceptionv3_kinetics400'),
     ('80ee0c6bef8b0240ec88273531cd7f43e3f6b65d', 'resnet50_v1b_sthsthv2'),
     ('01961e4cccf6405cd1342670b9525c21c578c9d4', 'i3d_resnet50_v1_sthsthv2'),
-    ('382433ba94ff4b5e938bc6729b06ab036ad136de', 'i3d_nl5_resnet50_v1_kinetics400'),
-    ('26b41dd6b04b3cd17057b3bff0ff9800ed8f6d7e', 'i3d_nl10_resnet50_v1_kinetics400'),
-    ('8b25d02f327838b71d0d986f3394753c15fd40fd', 'i3d_nl5_resnet101_v1_kinetics400'),
-    ('77d7ed77ca63c56660b188fd9165a5a3eb6ffe4d', 'i3d_nl10_resnet101_v1_kinetics400'),
+    ('129a7e8698470f8e56c5828a016c3c29e26579d5', 'i3d_nl5_resnet50_v1_kinetics400'),
+    ('67a95636ff01f8db87d7f0967166f90851684dd3', 'i3d_nl10_resnet50_v1_kinetics400'),
+    ('8b7ee86ee15bf6d2daff89ca89e33bd924d78ad1', 'i3d_nl5_resnet101_v1_kinetics400'),
+    ('64375b49ad1c1d6cb9aee258b9d0be1d051b4f3e', 'i3d_nl10_resnet101_v1_kinetics400'),
+    ('9d5cf9ec71ef183179ae6622b279dae216cae0b7', 'resnet18_v1b_kinetics400'),
+    ('b91fcb2fcb220c09241f170a67850c788dc25f07', 'resnet34_v1b_kinetics400'),
+    ('e3ad0758434ad852e1c563e860608ee8aafe0d5b', 'resnet50_v1b_kinetics400'),
+    ('f0a8dcb03ad65eb18516a63af2d481fc9715b112', 'resnet101_v1b_kinetics400'),
+    ('1968220de4d92578f852d511103b6c479e975300', 'resnet152_v1b_kinetics400'),
+    ('d77307d69b1c331c9ac0a7117a3f7f2d10eb8c60', 'slowfast_4x16_resnet50_kinetics400'),
+    ('de447c9dbb991505aab7537b900f3e2cfaa823b5', 'slowfast_8x8_resnet50_kinetics400'),
     ('2ec6bf01a55af38579380e6531d0ecc816862abe', 'i3d_resnet50_v1_hmdb51'),
     ('760d0981094787b8789ee4a8c382d09d493c7413', 'i3d_resnet50_v1_ucf101'),
     ('682591e23ce4b92fbd3222c0710ebb52166fddca', 'resnet50_v1b_hmdb51'),
@@ -212,37 +221,45 @@ def get_model_file(name, tag=None, root=os.path.join('~', '.mxnet', 'models')):
         file_name = '{name}-{short_hash}'.format(name=name,
                                                  short_hash=short_hash(name))
     root = os.path.expanduser(root)
-    file_path = os.path.join(root, file_name + '.params')
+    params_path = os.path.join(root, file_name + '.params')
+    lockfile = os.path.join(root, file_name + '.lock')
     if use_tag:
         sha1_hash = tag
     else:
         sha1_hash = _model_sha1[name]
-    if os.path.exists(file_path):
-        if check_sha1(file_path, sha1_hash):
-            return file_path
-        else:
-            print('Mismatch in the content of model file detected. Downloading again.')
-    else:
-        print('Model file is not found. Downloading.')
 
     if not os.path.exists(root):
         os.makedirs(root)
 
-    zip_file_path = os.path.join(root, file_name + '.zip')
-    repo_url = os.environ.get('MXNET_GLUON_REPO', apache_repo_url)
-    if repo_url[-1] != '/':
-        repo_url = repo_url + '/'
-    download(_url_format.format(repo_url=repo_url, file_name=file_name),
-             path=zip_file_path,
-             overwrite=True)
-    with zipfile.ZipFile(zip_file_path) as zf:
-        zf.extractall(root)
-    os.remove(zip_file_path)
+    with portalocker.Lock(lockfile, timeout=int(os.environ.get('GLUON_MODEL_LOCK_TIMEOUT', 300))):
+        if os.path.exists(params_path):
+            if check_sha1(params_path, sha1_hash):
+                return params_path
+            else:
+                logging.warning("Hash mismatch in the content of model file '%s' detected. "
+                                "Downloading again.", params_path)
+        else:
+            logging.info('Model file not found. Downloading.')
 
-    if check_sha1(file_path, sha1_hash):
-        return file_path
-    else:
-        raise ValueError('Downloaded file has different hash. Please try again.')
+        zip_file_path = os.path.join(root, file_name + '.zip')
+        repo_url = os.environ.get('MXNET_GLUON_REPO', apache_repo_url)
+        if repo_url[-1] != '/':
+            repo_url = repo_url + '/'
+        download(_url_format.format(repo_url=repo_url, file_name=file_name),
+                 path=zip_file_path,
+                 overwrite=True)
+        with zipfile.ZipFile(zip_file_path) as zf:
+            zf.extractall(root)
+        os.remove(zip_file_path)
+        # Make sure we write the model file on networked filesystems
+        try:
+            os.sync()
+        except AttributeError:
+            pass
+        if check_sha1(params_path, sha1_hash):
+            return params_path
+        else:
+            raise ValueError('Downloaded file has different hash. Please try again.')
 
 
 def purge(root=os.path.join('~', '.mxnet', 'models')):
