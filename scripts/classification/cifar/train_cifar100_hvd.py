@@ -97,10 +97,14 @@ def main():
         save_dir = ''
         save_period = 0
 
-    plot_path = opt.save_plot_dir
+    # plot_path = opt.save_plot_dir
 
-    logging.basicConfig(level=logging.INFO)
-    logging.info(opt)
+    logging.basicConfig(level=logging.INFO,
+                    filename="train_cifar100_sync_{}_{}_{}_{}.log".format(opt.model, opt.optimizer, opt.batch_size, opt.lr),
+                    filemode='a')
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    logging.getLogger('').addHandler(console)
 
     transform_train = transforms.Compose([
         gcv_transforms.RandomCrop(32, pad=4),
