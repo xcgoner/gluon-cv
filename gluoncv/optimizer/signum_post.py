@@ -71,5 +71,5 @@ class SignumPost(Optimizer):
         # update
         weight[:] = (1-lr*self.wd_lh) * weight - lr * grad
 
-        self.bit_counter += (state.size) * 2
+        self.bit_counter += (grad.size) * 2
 
