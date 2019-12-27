@@ -106,6 +106,9 @@ def main():
     console.setLevel(logging.INFO)
     logging.getLogger('').addHandler(console)
 
+    if rank == 0:
+        logging.info(opt)
+
     transform_train = transforms.Compose([
         gcv_transforms.RandomCrop(32, pad=4),
         transforms.RandomFlipLeftRight(),
