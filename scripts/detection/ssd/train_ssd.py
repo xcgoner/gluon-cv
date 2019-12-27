@@ -23,6 +23,8 @@ from gluoncv.utils.metrics.voc_detection import VOC07MApMetric
 from gluoncv.utils.metrics.coco_detection import COCODetectionMetric
 from gluoncv.utils.metrics.accuracy import Accuracy
 
+from gluoncv.data.sampler import SplitSampler
+
 from mxnet.contrib import amp
 
 try:
