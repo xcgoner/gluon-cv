@@ -1,5 +1,6 @@
 """Helper utils for export HybridBlock to symbols."""
 from __future__ import absolute_import
+import copy
 import mxnet as mx
 from mxnet.base import MXNetError
 from mxnet.gluon import HybridBlock
@@ -76,14 +77,35 @@ def export_block(path, block, data_shape=None, epoch=0, preprocess=True, layout=
 
     """
     # input image layout
+    layout = layout.upper()
     if data_shape is None:
-        data_shapes = [(s, s, 3) for s in (224, 256, 299, 300, 320, 416, 512, 600)]
+        if layout == 'HWC':
+            data_shapes = [(s, s, 3) for s in (224, 256, 299, 300, 320, 416, 512, 600)]
+        elif layout == 'CHW':
+            data_shapes = [(3, s, s) for s in (224, 256, 299, 300, 320, 416, 512, 600)]
+        else:
+            raise ValueError('Unable to predict data_shape, please specify.')
     else:
         data_shapes = [data_shape]
+
+    # use deepcopy of network to avoid in-place modification
+    copy_block = block
+    if '_target_generator' in copy_block._children:
+        copy_block = copy.deepcopy(block)
+        copy_block._children.pop('_target_generator')
+
+    # avoid using some optimized operators that are not yet available outside mxnet
+    if 'box_encode' in mx.sym.contrib.__dict__:
+        box_encode = mx.sym.contrib.box_encode
+        mx.sym.contrib.__dict__.pop('box_encode')
+    else:
+        box_encode = None
 
     if preprocess:
         # add preprocess block
         if preprocess is True:
+            assert layout == 'HWC', \
+                "Default preprocess only supports input as HWC, provided {}.".format(layout)
             preprocess = _DefaultPreprocess()
         else:
             if not isinstance(preprocess, HybridBlock):
@@ -91,9 +113,12 @@ def export_block(path, block, data_shape=None, epoch=0, preprocess=True, layout=
         wrapper_block = nn.HybridSequential()
         preprocess.initialize(ctx=ctx)
         wrapper_block.add(preprocess)
-        wrapper_block.add(block)
+        wrapper_block.add(copy_block)
     else:
-        wrapper_block = block
+        wrapper_block = copy_block
+        assert layout in ('CHW', 'CTHW'), \
+            "Default layout is CHW for 2D models and CTHW for 3D models if preprocess is None," \
+            + " provided {}.".format(layout)
     wrapper_block.collect_params().reset_ctx(ctx)
 
     # try different data_shape if possible, until one fits the network
@@ -126,3 +151,6 @@ def export_block(path, block, data_shape=None, epoch=0, preprocess=True, layout=
             last_exception = e
     if last_exception is not None:
         raise RuntimeError(str(last_exception).splitlines()[0])
+
+    if box_encode is not None:
+        mx.sym.contrib.__dict__['box_encode'] = box_encode

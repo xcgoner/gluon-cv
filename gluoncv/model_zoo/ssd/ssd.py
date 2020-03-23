@@ -83,6 +83,13 @@ class SSD(HybridBlock):
     norm_kwargs : dict
         Additional `norm_layer` arguments, for example `num_devices=4`
         for :class:`mxnet.gluon.contrib.nn.SyncBatchNorm`.
+    root : str
+        The root path for model storage, default is '~/.mxnet/models'
+    minimal_opset : bool
+        We sometimes add special operators to accelerate training/inference, however, for exporting
+        to third party compilers we want to utilize most widely used operators.
+        If `minimal_opset` is `True`, the network will use a minimal set of operators good
+        for e.g., `TVM`.
 
     """
     def __init__(self, network, base_size, features, num_filters, sizes, ratios,
@@ -90,7 +97,8 @@ class SSD(HybridBlock):
                  reduce_ratio=1.0, min_depth=128, global_pool=False, pretrained=False,
                  stds=(0.1, 0.1, 0.2, 0.2), nms_thresh=0.45, nms_topk=400, post_nms=100,
                  anchor_alloc_size=128, ctx=mx.cpu(),
-                 norm_layer=nn.BatchNorm, norm_kwargs=None, **kwargs):
+                 norm_layer=nn.BatchNorm, norm_kwargs=None,
+                 root=os.path.join('~', '.mxnet', 'models'), minimal_opset=False, **kwargs):
         super(SSD, self).__init__(**kwargs)
         if norm_kwargs is None:
             norm_kwargs = {}
@@ -117,10 +125,10 @@ class SSD(HybridBlock):
             if network is None:
                 # use fine-grained manually designed block as features
                 try:
-                    self.features = features(pretrained=pretrained, ctx=ctx,
+                    self.features = features(pretrained=pretrained, ctx=ctx, root=root,
                                              norm_layer=norm_layer, norm_kwargs=norm_kwargs)
                 except TypeError:
-                    self.features = features(pretrained=pretrained, ctx=ctx)
+                    self.features = features(pretrained=pretrained, ctx=ctx, root=root)
             else:
                 try:
                     self.features = FeatureExpander(
@@ -128,13 +136,13 @@ class SSD(HybridBlock):
                         use_1x1_transition=use_1x1_transition,
                         use_bn=use_bn, reduce_ratio=reduce_ratio, min_depth=min_depth,
                         global_pool=global_pool, pretrained=pretrained, ctx=ctx,
-                        norm_layer=norm_layer, norm_kwargs=norm_kwargs)
+                        norm_layer=norm_layer, norm_kwargs=norm_kwargs, root=root)
                 except TypeError:
                     self.features = FeatureExpander(
                         network=network, outputs=features, num_filters=num_filters,
                         use_1x1_transition=use_1x1_transition,
                         use_bn=use_bn, reduce_ratio=reduce_ratio, min_depth=min_depth,
-                        global_pool=global_pool, pretrained=pretrained, ctx=ctx)
+                        global_pool=global_pool, pretrained=pretrained, ctx=ctx, root=root)
             self.class_predictors = nn.HybridSequential()
             self.box_predictors = nn.HybridSequential()
             self.anchor_generators = nn.HybridSequential()
@@ -147,7 +155,7 @@ class SSD(HybridBlock):
                 num_anchors = anchor_generator.num_depth
                 self.class_predictors.add(ConvPredictor(num_anchors * (len(self.classes) + 1)))
                 self.box_predictors.add(ConvPredictor(num_anchors * 4))
-            self.bbox_decoder = NormalizedBoxCenterDecoder(stds)
+            self.bbox_decoder = NormalizedBoxCenterDecoder(stds, minimal_opset=minimal_opset)
             self.cls_decoder = MultiPerClassDecoder(len(self.classes) + 1, thresh=0.01)
 
     @property
@@ -389,7 +397,8 @@ def get_ssd(name, base_size, features, filters, sizes, ratios, steps, classes,
     pretrained_base = False if pretrained else pretrained_base
     base_name = None if callable(features) else name
     net = SSD(base_name, base_size, features, filters, sizes, ratios, steps,
-              pretrained=pretrained_base, classes=classes, ctx=ctx, **kwargs)
+              pretrained=pretrained_base, classes=classes, ctx=ctx, root=root,
+              minimal_opset=pretrained, **kwargs)
     if pretrained:
         from ..model_store import get_model_file
         full_name = '_'.join(('ssd', str(base_size), name, dataset))
