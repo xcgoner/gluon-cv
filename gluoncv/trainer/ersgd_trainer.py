@@ -110,6 +110,8 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     else:
                         param.list_grad()[0][:] = m
                     param.list_grad()[0][:] += self._lr * self._wd * param.list_data()[0]
+                    allreduce_(param.list_grad()[0], average=True,
+                               name=str(i), priority=-i)
                     param.list_data()[0][:] -= param.list_grad()[0]
 
                     # # compress
