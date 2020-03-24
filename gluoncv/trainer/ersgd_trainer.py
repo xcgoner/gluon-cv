@@ -104,8 +104,10 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     # compress
                     g = param.list_grad()[0].reshape((param.list_grad()[0].size,))
                     sparse_mask = random.sample(range(g.size), round(g.size*self._sparse_ratio))
+                    
                     # debug
-                    logging.info(sparse_mask)
+                    logging.info(random.sample(range(10), 4))
+
                     g_sync = g[sparse_mask]
                     r = g.copy()
                     r[sparse_mask] = 0
