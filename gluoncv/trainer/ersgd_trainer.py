@@ -50,6 +50,7 @@ class ERSGDTrainer(mx.gluon.Trainer):
         self._wd = wd
         self._states_to_init = True
         self._states = []
+        self._rescale_grad = 0.
 
     def step(self, batch_size, ignore_stale_grad=False):
         """Makes one step of parameter update. Should be called after
@@ -69,6 +70,7 @@ class ERSGDTrainer(mx.gluon.Trainer):
         """
         rescale_grad = self._scale / batch_size
         self._check_and_rescale_grad(rescale_grad)
+        self._rescale_grad = rescale_grad
 
         if not self._kv_initialized:
             self._init_kvstore()
@@ -97,7 +99,7 @@ class ERSGDTrainer(mx.gluon.Trainer):
                 if param.list_grad()[0].stype == 'default':
                     # ER-SGD
                     x_hat, m = self._states[i]
-                    param.list_grad()[0][:] += self._wd * param.list_data()[0]
+                    param.list_grad()[0][:] *= self._rescale_grad
                     param.list_grad()[0][:] *= self._lr
                     m[:] *= self._momentum
                     m[:] += param.list_grad()[0]
@@ -110,6 +112,7 @@ class ERSGDTrainer(mx.gluon.Trainer):
                         param.list_grad()[0][:] = m * self._momentum + param.list_grad()[0] 
                     else:
                         param.list_grad()[0][:] = m
+                    param.list_grad()[0][:] += self._lr * self._wd * param.list_data()[0]
                     allreduce_(param.list_grad()[0], average=True,
                                name=str(i), priority=-i)
                     param.list_data()[0][:] -= param.list_grad()[0]
