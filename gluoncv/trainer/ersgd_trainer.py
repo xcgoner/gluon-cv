@@ -125,7 +125,8 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     length = m.shape[0]
                     g = param.list_grad()[0]
                     k = round(length*self._sparse_ratio)
-                    sparse_mask = random.sample(range(length), k=k)
+                    sparse_index_begin = random.choice(range(length-k+1))
+                    sparse_index_end = sparse_index_begin + k
 
                     # # debug
                     if k < 1:
@@ -135,13 +136,13 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     # # logging.info(random.sample(range(10), 4))
                     # # mx.nd.waitall()
 
-                    g_sync = g[sparse_mask]
+                    g_sync = g[sparse_index_begin:sparse_index_end]
                     r = g.copy()
-                    r[sparse_mask] = 0
+                    r[sparse_index_begin:sparse_index_end] = 0
                     # partial sync
                     allreduce_(g_sync, average=True,
                                name=str(i), priority=-i)
-                    g[sparse_mask] = g_sync
+                    g[sparse_index_begin:sparse_index_end] = g_sync
                     x_hat[:] -= g
                     param.list_data()[0][:] = x_hat
                     x_hat[:] += r
