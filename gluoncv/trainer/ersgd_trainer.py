@@ -105,9 +105,9 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     g = param.list_grad()[0].reshape((param.list_grad()[0].size,))
                     sparse_mask = random.sample(range(g.size), round(g.size*self._sparse_ratio))
                     
-                    # debug
-                    logging.info(random.sample(range(10), 4))
-                    mx.nd.waitall()
+                    # # debug
+                    # logging.info(random.sample(range(10), 4))
+                    # mx.nd.waitall()
 
                     g_sync = g[sparse_mask]
                     r = g.copy()
