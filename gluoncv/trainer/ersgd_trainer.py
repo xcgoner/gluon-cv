@@ -107,6 +107,7 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     
                     # debug
                     logging.info(random.sample(range(10), 4))
+                    mx.nd.waitall()
 
                     g_sync = g[sparse_mask]
                     r = g.copy()
