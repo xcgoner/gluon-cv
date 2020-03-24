@@ -170,7 +170,8 @@ def main():
             optimizer_params, 
             sparse_ratio=1./16, 
             momentum=opt.momentum,
-            wd=opt.wd)
+            wd=opt.wd, 
+            nesterov=True)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})

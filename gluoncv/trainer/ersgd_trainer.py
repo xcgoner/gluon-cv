@@ -89,6 +89,7 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     self._states.append([param.list_data()[0].copy(), zeros_like(param.list_grad()[0])])
                 else:
                     self._states.append([])
+        self._states_to_init = False
 
     def _allreduce_grads(self):
         for i, param in enumerate(self._params):
@@ -96,11 +97,14 @@ class ERSGDTrainer(mx.gluon.Trainer):
                 if param.list_grad()[0].stype == 'default':
                     # ER-SGD
                     x_hat, m = self._states[i]
+                    param.list_grad()[0][:] *= self._lr
                     m[:] *= self._momentum
-                    param.list_grad()[0][:] += self._wd * param.list_data()[0]
-                    m[:] += self._lr * param.list_grad()[0]
-                    # TODO: nesterov
-                    param.list_grad()[0][:] = m + x_hat - param.list_data()[0]
+                    m[:] += param.list_grad()[0]
+                    if self._nesterov:
+                        param.list_grad()[0][:] = m * self._momentum + param.list_grad()[0] + self._lr * self._wd * param.list_data()[0] + x_hat - param.list_data()[0]
+                    else:
+                        param.list_grad()[0][:] = m + self._lr * self._wd * param.list_data()[0] + x_hat - param.list_data()[0]
+
                     # compress
                     length = m.shape[0]
                     g = param.list_grad()[0]
