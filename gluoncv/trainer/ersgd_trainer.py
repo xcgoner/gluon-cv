@@ -97,6 +97,7 @@ class ERSGDTrainer(mx.gluon.Trainer):
                 if param.list_grad()[0].stype == 'default':
                     # ER-SGD
                     x_hat, m = self._states[i]
+                    param.list_grad()[0][:] += self._wd * param.list_data()[0]
                     param.list_grad()[0][:] *= self._lr
                     m[:] *= self._momentum
                     m[:] += param.list_grad()[0]
@@ -109,7 +110,6 @@ class ERSGDTrainer(mx.gluon.Trainer):
                         param.list_grad()[0][:] = m * self._momentum + param.list_grad()[0] 
                     else:
                         param.list_grad()[0][:] = m
-                    param.list_grad()[0][:] += self._lr * self._wd * param.list_data()[0]
                     allreduce_(param.list_grad()[0], average=True,
                                name=str(i), priority=-i)
                     param.list_data()[0][:] -= param.list_grad()[0]
