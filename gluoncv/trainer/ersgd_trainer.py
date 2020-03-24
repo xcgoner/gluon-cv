@@ -107,8 +107,8 @@ class ERSGDTrainer(mx.gluon.Trainer):
                         param.list_grad()[0][:] = m * self._momentum + param.list_grad()[0]
                     else:
                         param.list_grad()[0][:] = m
-                    # weight decay
-                    param.list_grad()[0][:] += self._lr * self._wd * param.list_data()[0] 
+                    # # weight decay
+                    # param.list_grad()[0][:] += self._lr * self._wd * param.list_data()[0] 
                     # error feedback
                     param.list_grad()[0][:] += x_hat - param.list_data()[0]
 
@@ -125,6 +125,8 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     length = m.shape[0]
                     g = param.list_grad()[0]
                     k = round(length*self._sparse_ratio)
+                    # sparse_index_begin = random.choice(range(length-k+1))
+                    # sparse_index_end = sparse_index_begin + k
                     sparse_index_begin = random.choice(range(math.ceil(length/k))) * k
                     sparse_index_end = min(sparse_index_begin + k, length)
 
@@ -143,6 +145,10 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     allreduce_(g_sync, average=True,
                                name=str(i), priority=-i)
                     g[sparse_index_begin:sparse_index_end] = g_sync
+
+                    # weight decay
+                    g[:] += self._lr * self._wd * x_hat[:]
+
                     x_hat[:] -= g
                     param.list_data()[0][:] = x_hat
                     x_hat[:] += r
