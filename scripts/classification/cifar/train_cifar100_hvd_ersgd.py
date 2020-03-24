@@ -166,7 +166,7 @@ def main():
 
         trainer = ERSGDTrainer(
             net.collect_params(),  
-            optimizer, opt.lr
+            optimizer, opt.lr,
             optimizer_params, 
             sparse_ratio=1./16, 
             momentum=opt.momentum,
