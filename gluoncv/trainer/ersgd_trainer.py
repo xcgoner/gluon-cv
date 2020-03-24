@@ -100,34 +100,41 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     param.list_grad()[0][:] *= self._lr
                     m[:] *= self._momentum
                     m[:] += param.list_grad()[0]
+                    # if self._nesterov:
+                    #     param.list_grad()[0][:] = m * self._momentum + param.list_grad()[0] + self._lr * self._wd * param.list_data()[0] + x_hat - param.list_data()[0]
+                    # else:
+                    #     param.list_grad()[0][:] = m + self._lr * self._wd * param.list_data()[0] + x_hat - param.list_data()[0]
+
                     if self._nesterov:
-                        param.list_grad()[0][:] = m * self._momentum + param.list_grad()[0] + self._lr * self._wd * param.list_data()[0] + x_hat - param.list_data()[0]
+                        param.list_grad()[0][:] = m * self._momentum + param.list_grad()[0] 
                     else:
-                        param.list_grad()[0][:] = m + self._lr * self._wd * param.list_data()[0] + x_hat - param.list_data()[0]
+                        param.list_grad()[0][:] = m
+                    param.list_grad()[0][:] += self._lr * self._wd * param.list_data()[0]
+                    param.list_data()[0][:] -= param.list_grad()[0]
 
-                    # compress
-                    length = m.shape[0]
-                    g = param.list_grad()[0]
-                    k = round(length*self._sparse_ratio)
-                    sparse_mask = random.sample(range(length), k=k)
+                    # # compress
+                    # length = m.shape[0]
+                    # g = param.list_grad()[0]
+                    # k = round(length*self._sparse_ratio)
+                    # sparse_mask = random.sample(range(length), k=k)
 
-                    # debug
-                    if k < 1:
-                        logging.info('sparse ratio is too small')
-                    
                     # # debug
-                    # logging.info(random.sample(range(10), 4))
-                    # mx.nd.waitall()
+                    # if k < 1:
+                    #     logging.info('sparse ratio is too small')
+                    
+                    # # # debug
+                    # # logging.info(random.sample(range(10), 4))
+                    # # mx.nd.waitall()
 
-                    g_sync = g[sparse_mask]
-                    r = g.copy()
-                    r[sparse_mask] = 0
-                    # partial sync
-                    allreduce_(g_sync, average=True,
-                               name=str(i), priority=-i)
-                    g[sparse_mask] = g_sync
-                    param.list_data()[0][:] = x_hat - g
-                    x_hat[:] = param.list_data()[0] + r
+                    # g_sync = g[sparse_mask]
+                    # r = g.copy()
+                    # r[sparse_mask] = 0
+                    # # partial sync
+                    # allreduce_(g_sync, average=True,
+                    #            name=str(i), priority=-i)
+                    # g[sparse_mask] = g_sync
+                    # param.list_data()[0][:] = x_hat - g
+                    # x_hat[:] = param.list_data()[0] + r
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
