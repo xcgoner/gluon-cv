@@ -29,12 +29,13 @@ import types
 import warnings
 import math
 import random
+import logging
 
 import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
 
 class ERSGDTrainer(mx.gluon.Trainer):
-    def __init__(self, params, optimizer, lr, optimizer_params=None, sparse_ratio=0, momentum=0.9, nesterov=False):
+    def __init__(self, params, optimizer, lr, optimizer_params=None, sparse_ratio=0, momentum=0.9, wd=0.0001, nesterov=False):
 
         super(ERSGDTrainer, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None, update_on_kvstore = False)
@@ -46,6 +47,7 @@ class ERSGDTrainer(mx.gluon.Trainer):
         self._momentum = momentum
         self._nesterov = nesterov
         self._lr = lr
+        self._wd = wd
         self._states_to_init = True
         self._states = []
 
@@ -95,12 +97,15 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     # ER-SGD
                     x_hat, m = self._states[i]
                     m[:] *= self._momentum
+                    param.list_grad()[0][:] += self._wd * param.list_data()[0]
                     m[:] += self._lr * param.list_grad()[0]
                     # TODO: nesterov
                     param.list_grad()[0][:] = m + x_hat - param.list_data()[0]
                     # compress
                     g = param.list_grad()[0].reshape((param.list_grad()[0].size,))
                     sparse_mask = random.sample(range(g.size), round(g.size*self._sparse_ratio))
+                    # debug
+                    logging.info(sparse_mask)
                     g_sync = g[sparse_mask]
                     r = g.copy()
                     r[sparse_mask] = 0

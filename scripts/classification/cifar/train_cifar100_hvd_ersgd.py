@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 
-import argparse, time, logging
+import argparse, time, logging, random
 
 import numpy as np
 import mxnet as mx
@@ -20,6 +20,10 @@ from gluoncv.data.sampler import SplitSampler
 import horovod.mxnet as hvd
 
 from gluoncv.trainer.ersgd_trainer import ERSGDTrainer
+
+np.random.seed(100)
+random.seed(100)
+mx.random.seed(10000)
 
 # CLI
 def parse_args():
@@ -165,7 +169,8 @@ def main():
             optimizer, opt.lr
             optimizer_params, 
             sparse_ratio=1./16, 
-            momentum=opt.momentum)
+            momentum=opt.momentum,
+            wd=opt.wd)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})
@@ -190,6 +195,7 @@ def main():
 
             if epoch == lr_decay_epoch[lr_decay_count]:
                 trainer.set_learning_rate(trainer.learning_rate*lr_decay)
+                trainer._lr *= lr_decay
                 lr_decay_count += 1
 
             for i, batch in enumerate(train_data):
