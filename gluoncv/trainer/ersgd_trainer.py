@@ -150,8 +150,8 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     g[sparse_index_begin:sparse_index_end] = g_sync
 
                     # weight decay
-                    g[:] += self._lr * self._wd * x_hat[:]
-                    # g[:] += self._lr * self._wd * param.list_data()[0]
+                    # g[:] += self._lr * self._wd * x_hat[:]
+                    g[:] += self._lr * self._wd * param.list_data()[0]
 
                     x_hat[:] -= g
                     param.list_data()[0][:] = x_hat
