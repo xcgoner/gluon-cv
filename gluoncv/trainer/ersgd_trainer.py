@@ -50,6 +50,7 @@ class ERSGDTrainer(mx.gluon.Trainer):
         self._wd = wd
         self._states_to_init = True
         self._states = []
+        self._params_cache = []
         self._rescale_grad = 0.
 
     def step(self, batch_size, ignore_stale_grad=False):
@@ -89,8 +90,10 @@ class ERSGDTrainer(mx.gluon.Trainer):
                 if param.grad_req != 'null':
                     # \hat{x} and momentum
                     self._states.append([param.list_data()[0].copy(), zeros_like(param.list_grad()[0])])
+                    self._params_cache.append(param.list_data()[0].copy())
                 else:
                     self._states.append([])
+                    self._params_cache.append([])
         self._states_to_init = False
 
     def _allreduce_grads(self):
@@ -169,3 +172,15 @@ class ERSGDTrainer(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 hvd.allreduce_(param.list_data()[0], average=True, 
                                        name=str(i), priority=-i)
+
+
+    def pre_test(self):
+        for i, param in enumerate(self._params):
+            if param.grad_req != 'null':
+                self._params_cache[i][:] = param.list_data()[0]
+                hvd.allreduce_(param.list_data()[0], average=True, 
+                                       name=str(i), priority=-i)
+    def post_test(self):
+        for i, param in enumerate(self._params):
+            if param.grad_req != 'null':
+                param.list_data()[0][:] = self._params_cache[i]
