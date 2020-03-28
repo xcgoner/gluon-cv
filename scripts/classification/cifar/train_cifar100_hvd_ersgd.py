@@ -177,6 +177,15 @@ def main():
             wd=opt.wd, 
             nesterov=False)
 
+        # for test
+        params_test = []
+        for i, param in enumerate(net_test.collect_params()):
+            if not isinstance(param, Parameter):
+                raise ValueError(
+                    "First argument must be a list or dict of Parameters, " \
+                    "got list of %s."%(type(param)))
+            params_test.append(param)
+
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})
         
@@ -223,7 +232,7 @@ def main():
             name, acc = train_metric.get()
 
             # sync parameters for test
-            for param, param_test in zip(net.collect_params(), net_test.collect_params()):
+            for param, param_test in zip(trainer._params, params_test):
                 if param.grad_req != 'null':
                     param_test.list_data()[0][:] = param.list_data()[0]
                     hvd.allreduce_(param_test.list_data()[0], average=True, 
