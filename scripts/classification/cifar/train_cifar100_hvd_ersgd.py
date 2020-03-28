@@ -180,10 +180,6 @@ def main():
         # for test
         params_test = []
         for i, param in enumerate(net_test.collect_params()):
-            if not isinstance(param, Parameter):
-                raise ValueError(
-                    "First argument must be a list or dict of Parameters, " \
-                    "got list of %s."%(type(param)))
             params_test.append(param)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
