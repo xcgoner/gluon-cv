@@ -95,6 +95,9 @@ def main():
     # optimizer = 'nag'
     optimizer = opt.optimizer
 
+    # model for test
+    net_test = get_model(model_name, **kwargs)
+
     save_period = opt.save_period
     if opt.save_dir and save_period:
         save_dir = opt.save_dir
@@ -134,7 +137,8 @@ def main():
         for i, batch in enumerate(val_data):
             data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
             label = gluon.utils.split_and_load(batch[1], ctx_list=ctx, batch_axis=0)
-            outputs = [net(X) for X in data]
+            # outputs = [net(X) for X in data]
+            outputs = [net_test(X) for X in data]
             metric.update(label, outputs)
         return metric.get()
 
@@ -217,6 +221,14 @@ def main():
 
             train_loss /= batch_size * num_batch
             name, acc = train_metric.get()
+
+            # sync parameters for test
+            for param, param_test in zip(net.collect_params(), net_test.collect_params()):
+                if param.grad_req != 'null':
+                    param_test.list_data()[0][:] = param.list_data()[0]
+                    hvd.allreduce_(param_test.list_data()[0], average=True, 
+                                       name=str(i), priority=-i)
+
             name, val_acc = test(ctx, val_data)
             
             train_history.update([1-acc, 1-val_acc])
