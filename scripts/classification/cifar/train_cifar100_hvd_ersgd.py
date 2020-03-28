@@ -178,6 +178,8 @@ def main():
             nesterov=False)
 
         # for test
+        net_test.initialize(mx.init.Xavier(), ctx=ctx)
+        net_test_initialized = False
         params_test = []
         for i, param in enumerate(net_test.collect_params()):
             params_test.append(param)
@@ -215,6 +217,11 @@ def main():
                 with ag.record():
                     output = [net(X) for X in data]
                     loss = [loss_fn(yhat, y) for yhat, y in zip(output, label)]
+
+                    # initialize net_test
+                    if not net_test_initialized:
+                        net_test_initialized = True
+                        net_test(X)
                 for l in loss:
                     l.backward()
                 trainer.step(batch_size)
