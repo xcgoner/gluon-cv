@@ -221,7 +221,7 @@ def main():
                     # initialize net_test
                     if not net_test_initialized:
                         net_test_initialized = True
-                        net_test(X)
+                        net_test(data[0])
                 for l in loss:
                     l.backward()
                 trainer.step(batch_size)
