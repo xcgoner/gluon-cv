@@ -137,7 +137,7 @@ class EFSGDTrainer(mx.gluon.Trainer):
                     allreduce_(e_sync, average=True,
                                name=str(i), priority=-i)
                     # g[:] = 0
-                    # g[sparse_index_begin:sparse_index_end] = g_sync
+                    # g[sparse_index_begin:sparse_index_end] = e_sync
 
                     param.list_data()[0][sparse_index_begin:sparse_index_end] -= e_sync
                     e[sparse_index_begin:sparse_index_end] = 0

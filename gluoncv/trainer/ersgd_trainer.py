@@ -109,18 +109,19 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     m[:] *= self._momentum
                     m[:] += g
                     if self._nesterov:
-                        g[:] = m * self._momentum + g
+                        g[:] += m * self._momentum
                     else:
                         g[:] = m
 
                     # weight decay
                     param.list_data()[0][:] *= (1-self._lr * self._wd)
 
-                    # recover x_hat
-                    param.list_data()[0][:] += r
+                    # # recover x_hat
+                    # param.list_data()[0][:] += r
 
                     # error feedback
                     r[:] += g
+                    param.list_data()[0][:] -= g
 
                     # compress
                     length = m.shape[0]
@@ -134,6 +135,8 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     sparse_index_end = min(sparse_index_begin + k, length)
 
                     r_sync = r[sparse_index_begin:sparse_index_end]
+                    # clear the sync part
+                    param.list_data()[0][sparse_index_begin:sparse_index_end] += r_sync
                     # partial sync
                     allreduce_(r_sync, average=True,
                                name=str(i), priority=-i)
@@ -143,7 +146,8 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     # # g[:] += self._lr * self._wd * x_hat[:]
                     # g[:] += self._lr * self._wd * param.list_data()[0]
 
-                    param.list_data()[0][:] -= r
+                    # param.list_data()[0][:] -= r
+                    param.list_data()[0][sparse_index_begin:sparse_index_end] -= r_sync
                     r[sparse_index_begin:sparse_index_end] = 0
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
