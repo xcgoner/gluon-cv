@@ -90,10 +90,10 @@ class EFSGDTrainer(mx.gluon.Trainer):
                 if param.grad_req != 'null':
                     # e and momentum
                     self._states.append([zeros_like(param.list_grad()[0]), zeros_like(param.list_grad()[0])])
-                    # self._params_cache.append(param.list_data()[0].copy())
+                    self._params_cache.append(param.list_data()[0].copy())
                 else:
                     self._states.append([])
-                    # self._params_cache.append([])
+                    self._params_cache.append([])
         self._states_to_init = False
 
     def _allreduce_grads(self):
@@ -157,4 +157,18 @@ class EFSGDTrainer(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 hvd.allreduce_(param.list_data()[0], average=True, 
                                        name=str(i), priority=-i)
+
+
+    def pre_test(self):
+        for i, param in enumerate(self._params):
+            if param.grad_req != 'null':
+                self._params_cache[i][:] = param.list_data()[0]
+                e, _ = self._states[i]
+                param.list_data()[0][:] -= e
+                hvd.allreduce_(param.list_data()[0], average=True, 
+                                       name=str(i), priority=-i)
+    def post_test(self):
+        for i, param in enumerate(self._params):
+            if param.grad_req != 'null':
+                param.list_data()[0][:] = self._params_cache[i]
 
