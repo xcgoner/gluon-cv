@@ -19,7 +19,7 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
-from gluoncv.trainer.ersgd_trainer import ERSGDTrainer
+from gluoncv.trainer.efsgd_trainer import EFSGDTrainer
 
 np.random.seed(100)
 random.seed(100)
@@ -169,7 +169,7 @@ def main():
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
-        trainer = ERSGDTrainer(
+        trainer = EFSGDTrainer(
             net.collect_params(),  
             optimizer, opt.lr,
             optimizer_params, 
