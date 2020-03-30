@@ -66,6 +66,7 @@ def parse_args():
                         help='denominator of the row-sparse ratio')
     parser.add_argument('--layer-sparse', type=float, default=1.,
                         help='denominator of the layer-sparse ratio')
+    parser.add_argument('--test-sync', action='store_true', help='Turn on to sync model before test')
     opt = parser.parse_args()
     return opt
 
@@ -225,9 +226,11 @@ def main():
             name, acc = train_metric.get()
             # name, val_acc = test(ctx, val_data)
 
-            trainer.pre_test()
+            if opt.test_sync:
+                trainer.pre_test()
             name, val_acc = test(ctx, val_data)
-            trainer.post_test()
+            if opt.test_sync:
+                trainer.post_test()
             
             train_history.update([1-acc, 1-val_acc])
             # train_history.plot(save_path='%s/%s_history.png'%(plot_path, model_name))
