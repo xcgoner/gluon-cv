@@ -128,14 +128,14 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     length = m.shape[0]
                     g = param.list_grad()[0]
                     k = round(length*self._sparse_ratio)
+                    # debug
+                    if k < 1:
+                        logging.info('sparse ratio is too small')
                     # sparse_index_begin = random.choice(range(length-k+1))
                     # sparse_index_end = sparse_index_begin + k
                     sparse_index_begin = random.choice(range(math.ceil(length/k))) * k
                     sparse_index_end = min(sparse_index_begin + k, length)
 
-                    # # debug
-                    if k < 1:
-                        logging.info('sparse ratio is too small')
                     
                     # # # debug
                     # # logging.info(random.sample(range(10), 4))
