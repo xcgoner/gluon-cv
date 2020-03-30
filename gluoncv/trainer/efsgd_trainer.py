@@ -90,10 +90,10 @@ class EFSGDTrainer(mx.gluon.Trainer):
                 if param.grad_req != 'null':
                     # e and momentum
                     self._states.append([zeros_like(param.list_grad()[0]), zeros_like(param.list_grad()[0])])
-                    self._params_cache.append(param.list_data()[0].copy())
+                    # self._params_cache.append(param.list_data()[0].copy())
                 else:
                     self._states.append([])
-                    self._params_cache.append([])
+                    # self._params_cache.append([])
         self._states_to_init = False
 
     def _allreduce_grads(self):
@@ -102,20 +102,23 @@ class EFSGDTrainer(mx.gluon.Trainer):
                 if param.list_grad()[0].stype == 'default':
                     # EF-SGD
                     e, m = self._states[i]
-                    param.list_grad()[0][:] *= self._rescale_grad
-                    param.list_grad()[0][:] *= self._lr
+                    g = param.list_grad()[0]
+                    g[:] *= (self._rescale_grad * self._lr)
                     m[:] *= self._momentum
-                    m[:] += param.list_grad()[0]
+                    m[:] += g
                     if self._nesterov:
-                        param.list_grad()[0][:] = m * self._momentum + param.list_grad()[0]
+                        g[:] = m * self._momentum + g
                     else:
-                        param.list_grad()[0][:] = m
+                        g[:] = m
+
+                    # weight decay
+                    param.list_data()[0][:] *= (1-self._lr * self._wd)
+
                     # error feedback
-                    param.list_grad()[0][:] += e
+                    e[:] += g
 
                     # compress
                     length = m.shape[0]
-                    g = param.list_grad()[0]
                     k = round(length*self._sparse_ratio)
                     # debug
                     if k < 1:
@@ -129,19 +132,15 @@ class EFSGDTrainer(mx.gluon.Trainer):
                     # # logging.info(random.sample(range(10), 4))
                     # # mx.nd.waitall()
 
-                    g_sync = g[sparse_index_begin:sparse_index_end]
-                    e[:] = g
-                    e[sparse_index_begin:sparse_index_end] = 0
+                    e_sync = e[sparse_index_begin:sparse_index_end]
                     # partial sync
-                    allreduce_(g_sync, average=True,
+                    allreduce_(e_sync, average=True,
                                name=str(i), priority=-i)
-                    g[:] = 0
-                    g[sparse_index_begin:sparse_index_end] = g_sync
+                    # g[:] = 0
+                    # g[sparse_index_begin:sparse_index_end] = g_sync
 
-                    # weight decay
-                    g[:] += self._lr * self._wd * param.list_data()[0]
-
-                    param.list_data()[0] -= g
+                    param.list_data()[0][sparse_index_begin:sparse_index_end] -= e_sync
+                    e[sparse_index_begin:sparse_index_end] = 0
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 

@@ -44,7 +44,7 @@ class ERSGDTrainer(mx.gluon.Trainer):
 
         # ER-SGD
         self._row_sparse_ratio = row_sparse_ratio
-        self._row_sparse_ratio = row_sparse_ratio
+        self._layer_sparse_ratio = layer_sparse_ratio
         self._momentum = momentum
         self._nesterov = nesterov
         self._lr = lr
@@ -89,8 +89,8 @@ class ERSGDTrainer(mx.gluon.Trainer):
             # initialize the states
             for i, param in enumerate(self._params):
                 if param.grad_req != 'null':
-                    # \hat{x} and momentum
-                    self._states.append([param.list_data()[0].copy(), zeros_like(param.list_grad()[0])])
+                    # r and momentum
+                    self._states.append([zeros_like(param.list_grad()[0]), zeros_like(param.list_grad()[0])])
                     self._params_cache.append(param.list_data()[0].copy())
                 else:
                     self._states.append([])
@@ -102,33 +102,29 @@ class ERSGDTrainer(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # ER-SGD
-                    x_hat, m = self._states[i]
-                    param.list_grad()[0][:] *= self._rescale_grad
-                    param.list_grad()[0][:] *= self._lr
+                    # if random.uniform(0,1) <= 
+                    r, m = self._states[i]
+                    g = param.list_grad()[0]
+                    g[:] *= (self._rescale_grad * self._lr)
                     m[:] *= self._momentum
-                    m[:] += param.list_grad()[0]
+                    m[:] += g
                     if self._nesterov:
-                        param.list_grad()[0][:] = m * self._momentum + param.list_grad()[0]
+                        g[:] = m * self._momentum + g
                     else:
-                        param.list_grad()[0][:] = m
-                    # # weight decay
-                    # param.list_grad()[0][:] += self._lr * self._wd * param.list_data()[0] 
-                    # error feedback
-                    param.list_grad()[0][:] += x_hat - param.list_data()[0]
+                        g[:] = m
 
-                    # if self._nesterov:
-                    #     param.list_grad()[0][:] = m * self._momentum + param.list_grad()[0] 
-                    # else:
-                    #     param.list_grad()[0][:] = m
-                    # param.list_grad()[0][:] += self._lr * self._wd * param.list_data()[0]
-                    # allreduce_(param.list_grad()[0], average=True,
-                    #            name=str(i), priority=-i)
-                    # param.list_data()[0][:] -= param.list_grad()[0]
+                    # weight decay
+                    param.list_data()[0][:] *= (1-self._lr * self._wd)
+
+                    # recover x_hat
+                    param.list_data()[0][:] += r
+
+                    # error feedback
+                    r[:] += g
 
                     # compress
                     length = m.shape[0]
-                    g = param.list_grad()[0]
-                    k = round(length*self._sparse_ratio)
+                    k = round(length*self._row_sparse_ratio)
                     # debug
                     if k < 1:
                         logging.info('sparse ratio is too small')
@@ -137,26 +133,18 @@ class ERSGDTrainer(mx.gluon.Trainer):
                     sparse_index_begin = random.choice(range(math.ceil(length/k))) * k
                     sparse_index_end = min(sparse_index_begin + k, length)
 
-                    
-                    # # # debug
-                    # # logging.info(random.sample(range(10), 4))
-                    # # mx.nd.waitall()
-
-                    g_sync = g[sparse_index_begin:sparse_index_end]
-                    r = g.copy()
-                    r[sparse_index_begin:sparse_index_end] = 0
+                    r_sync = r[sparse_index_begin:sparse_index_end]
                     # partial sync
-                    allreduce_(g_sync, average=True,
+                    allreduce_(r_sync, average=True,
                                name=str(i), priority=-i)
-                    g[sparse_index_begin:sparse_index_end] = g_sync
+                    r[sparse_index_begin:sparse_index_end] = r_sync
 
-                    # weight decay
-                    # g[:] += self._lr * self._wd * x_hat[:]
-                    g[:] += self._lr * self._wd * param.list_data()[0]
+                    # # weight decay
+                    # # g[:] += self._lr * self._wd * x_hat[:]
+                    # g[:] += self._lr * self._wd * param.list_data()[0]
 
-                    x_hat[:] -= g
-                    param.list_data()[0][:] = x_hat
-                    x_hat[:] += r
+                    param.list_data()[0][:] -= r
+                    r[sparse_index_begin:sparse_index_end] = 0
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 

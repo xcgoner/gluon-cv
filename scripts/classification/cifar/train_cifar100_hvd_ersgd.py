@@ -173,7 +173,8 @@ def main():
             net.collect_params(),  
             optimizer, opt.lr,
             optimizer_params, 
-            sparse_ratio=1./opt.row_sparse, 
+            row_sparse_ratio=1./opt.row_sparse, 
+            layer_sparse_ratio=1./opt.layer_sparse, 
             momentum=opt.momentum,
             wd=opt.wd, 
             nesterov=False)
