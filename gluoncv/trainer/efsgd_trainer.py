@@ -159,14 +159,3 @@ class EFSGDTrainer(mx.gluon.Trainer):
                 hvd.allreduce_(param.list_data()[0], average=True, 
                                        name=str(i), priority=-i)
 
-
-    def pre_test(self):
-        for i, param in enumerate(self._params):
-            if param.grad_req != 'null':
-                self._params_cache[i][:] = param.list_data()[0]
-                hvd.allreduce_(param.list_data()[0], average=True, 
-                                       name=str(i), priority=-i)
-    def post_test(self):
-        for i, param in enumerate(self._params):
-            if param.grad_req != 'null':
-                param.list_data()[0][:] = self._params_cache[i]

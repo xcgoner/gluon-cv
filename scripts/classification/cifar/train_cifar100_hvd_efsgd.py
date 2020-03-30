@@ -223,10 +223,7 @@ def main():
 
             train_loss /= batch_size * num_batch
             name, acc = train_metric.get()
-
-            trainer.pre_test()
             name, val_acc = test(ctx, val_data)
-            trainer.post_test()
             
             train_history.update([1-acc, 1-val_acc])
             # train_history.plot(save_path='%s/%s_history.png'%(plot_path, model_name))

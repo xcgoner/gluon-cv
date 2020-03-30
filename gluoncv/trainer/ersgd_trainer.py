@@ -35,7 +35,7 @@ import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
 
 class ERSGDTrainer(mx.gluon.Trainer):
-    def __init__(self, params, optimizer, lr, optimizer_params=None, sparse_ratio=0, momentum=0.9, wd=0.0001, nesterov=False):
+    def __init__(self, params, optimizer, lr, optimizer_params=None, row_sparse_ratio=1, layer_sparse_ratio=1, momentum=0.9, wd=0.0001, nesterov=False):
 
         super(ERSGDTrainer, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None, update_on_kvstore = False)
@@ -43,7 +43,8 @@ class ERSGDTrainer(mx.gluon.Trainer):
         self._update_on_kvstore = False
 
         # ER-SGD
-        self._sparse_ratio = sparse_ratio
+        self._row_sparse_ratio = row_sparse_ratio
+        self._row_sparse_ratio = row_sparse_ratio
         self._momentum = momentum
         self._nesterov = nesterov
         self._lr = lr
