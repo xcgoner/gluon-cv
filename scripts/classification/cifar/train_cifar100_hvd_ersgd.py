@@ -110,7 +110,7 @@ def main():
     # plot_path = opt.save_plot_dir
 
     logging.basicConfig(level=logging.INFO,
-                    filename="train_cifar100_sync_{}_{}_{}_{}.log".format(opt.model, opt.optimizer, opt.batch_size, opt.lr),
+                    filename="train_cifar100_ersgd_{}_{}_{}_{}.log".format(opt.model, opt.optimizer, opt.batch_size, opt.lr),
                     filemode='a')
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
