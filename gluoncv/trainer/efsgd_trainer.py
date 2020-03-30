@@ -107,7 +107,7 @@ class EFSGDTrainer(mx.gluon.Trainer):
                     m[:] *= self._momentum
                     m[:] += g
                     if self._nesterov:
-                        g[:] = m * self._momentum + g
+                        g[:] += self._momentum * m
                     else:
                         g[:] = m
 
@@ -136,10 +136,11 @@ class EFSGDTrainer(mx.gluon.Trainer):
                     # partial sync
                     allreduce_(e_sync, average=True,
                                name=str(i), priority=-i)
-                    # g[:] = 0
-                    # g[sparse_index_begin:sparse_index_end] = e_sync
+                    g[:] = 0
+                    g[sparse_index_begin:sparse_index_end] = e_sync
 
-                    param.list_data()[0][sparse_index_begin:sparse_index_end] -= e_sync
+                    # param.list_data()[0][sparse_index_begin:sparse_index_end] -= e_sync
+                    param.list_data()[0][:] -= g
                     e[sparse_index_begin:sparse_index_end] = 0
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
