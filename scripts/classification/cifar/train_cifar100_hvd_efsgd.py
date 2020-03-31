@@ -67,6 +67,7 @@ def parse_args():
     parser.add_argument('--layer-sparse', type=float, default=1.,
                         help='denominator of the layer-sparse ratio')
     parser.add_argument('--test-sync', action='store_true', help='Turn on to sync model before test')
+    parser.add_argument('--nesterov', action='store_true', help='Turn on Nesterov for optimizer')
     opt = parser.parse_args()
     return opt
 
@@ -173,7 +174,7 @@ def main():
             layer_sparse_ratio=1./opt.layer_sparse,  
             momentum=opt.momentum,
             wd=opt.wd, 
-            nesterov=False)
+            nesterov=opt.nesterov)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})
