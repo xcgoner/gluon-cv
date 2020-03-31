@@ -62,7 +62,7 @@ def parse_args():
                         help='resume training from the model')
     parser.add_argument('--save-plot-dir', type=str, default='.',
                         help='the path to save the history plot')
-    parser.add_argument('--row-sparse', type=float, default=32.,
+    parser.add_argument('--row-sparse', type=float, default=20.,
                         help='denominator of the row-sparse ratio')
     parser.add_argument('--layer-sparse', type=float, default=1.,
                         help='denominator of the layer-sparse ratio')

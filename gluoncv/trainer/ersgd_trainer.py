@@ -102,7 +102,6 @@ class ERSGDTrainer(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # ER-SGD
-                    # if random.uniform(0,1) <= 
                     r, m = self._states[i]
                     g = param.list_grad()[0]
                     g[:] *= (self._rescale_grad * self._lr)
@@ -115,36 +114,40 @@ class ERSGDTrainer(mx.gluon.Trainer):
 
                     # weight decay
                     param.list_data()[0][:] *= (1-self._lr * self._wd)
+                    if random.uniform(0,1) <= self._layer_sparse_ratio:
+                        # recover x_hat
+                        param.list_data()[0][:] += r
 
-                    # recover x_hat
-                    param.list_data()[0][:] += r
+                        # error feedback
+                        r[:] += g
 
-                    # error feedback
-                    r[:] += g
+                        # compress
+                        length = m.shape[0]
+                        k = round(length*self._row_sparse_ratio)
+                        # debug
+                        if k < 1:
+                            logging.info('sparse ratio is too small')
+                            k = 1
+                        # sparse_index_begin = random.choice(range(length-k+1))
+                        # sparse_index_end = sparse_index_begin + k
+                        sparse_index_begin = random.choice(range(math.ceil(length/k))) * k
+                        sparse_index_end = min(sparse_index_begin + k, length)
 
-                    # compress
-                    length = m.shape[0]
-                    k = round(length*self._row_sparse_ratio)
-                    # debug
-                    if k < 1:
-                        logging.info('sparse ratio is too small')
-                    # sparse_index_begin = random.choice(range(length-k+1))
-                    # sparse_index_end = sparse_index_begin + k
-                    sparse_index_begin = random.choice(range(math.ceil(length/k))) * k
-                    sparse_index_end = min(sparse_index_begin + k, length)
+                        r_sync = r[sparse_index_begin:sparse_index_end]
+                        # partial sync
+                        allreduce_(r_sync, average=True,
+                                name=str(i), priority=-i)
+                        r[sparse_index_begin:sparse_index_end] = r_sync
 
-                    r_sync = r[sparse_index_begin:sparse_index_end]
-                    # partial sync
-                    allreduce_(r_sync, average=True,
-                               name=str(i), priority=-i)
-                    r[sparse_index_begin:sparse_index_end] = r_sync
+                        # # weight decay
+                        # # g[:] += self._lr * self._wd * x_hat[:]
+                        # g[:] += self._lr * self._wd * param.list_data()[0]
 
-                    # # weight decay
-                    # # g[:] += self._lr * self._wd * x_hat[:]
-                    # g[:] += self._lr * self._wd * param.list_data()[0]
-
-                    param.list_data()[0][:] -= r
-                    r[sparse_index_begin:sparse_index_end] = 0
+                        param.list_data()[0][:] -= r
+                        r[sparse_index_begin:sparse_index_end] = 0
+                    else:
+                        param.list_data()[0][:] -= g
+                        r[:] += g
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
