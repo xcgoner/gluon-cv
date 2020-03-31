@@ -161,11 +161,6 @@ def main():
             val_dataset,
             sampler=SplitSampler(len(val_dataset), num_parts=num_workers, part_index=rank),
             batch_size=batch_size, num_workers=opt.num_workers)
-        
-        # # allreduce val acc is not working
-        # val_data = gluon.data.DataLoader(
-        #     val_dataset,
-        #     batch_size=batch_size, num_workers=opt.num_workers)
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
@@ -242,17 +237,6 @@ def main():
             train_loss = np.asscalar(allreduce_array_np[0])
             acc = np.asscalar(allreduce_array_np[1])
             val_acc = np.asscalar(allreduce_array_np[2])
-
-            # train_loss_nd = mx.nd.array([train_loss])
-            # hvd.allreduce_(train_loss_nd, name='train_loss', average=True)
-            # train_loss = np.asscalar(train_loss_nd.asnumpy())
-            # acc_nd = mx.nd.array([acc])
-            # hvd.allreduce_(acc_nd, name='acc', average=True)
-            # acc = np.asscalar(acc_nd.asnumpy())
-            # val_acc_nd = mx.nd.array([val_acc])
-            # hvd.allreduce_(val_acc_nd, name='val_acc', average=True)
-            # mx.nd.waitall()
-            # val_acc = np.asscalar(val_acc_nd.asnumpy())
 
             if val_acc > best_val_score:
                 best_val_score = val_acc

@@ -174,7 +174,8 @@ def main():
             net.collect_params(),  
             optimizer, opt.lr,
             optimizer_params, 
-            sparse_ratio=1./opt.row_sparse, 
+            row_sparse_ratio=1./opt.row_sparse, 
+            layer_sparse_ratio=1./opt.layer_sparse,  
             momentum=opt.momentum,
             wd=opt.wd, 
             nesterov=False)
@@ -222,6 +223,9 @@ def main():
                 name, acc = train_metric.get()
                 iteration += 1
 
+            mx.nd.waitall()
+            toc = time.time()
+            
             train_loss /= batch_size * num_batch
             name, acc = train_metric.get()
             # name, val_acc = test(ctx, val_data)
@@ -235,17 +239,13 @@ def main():
             train_history.update([1-acc, 1-val_acc])
             # train_history.plot(save_path='%s/%s_history.png'%(plot_path, model_name))
 
-            # why average=False ???
-            train_loss_nd = mx.nd.array([train_loss])
-            hvd.allreduce_(train_loss_nd, name='train_loss', average=True)
-            train_loss = np.asscalar(train_loss_nd.asnumpy())
-            acc_nd = mx.nd.array([acc])
-            hvd.allreduce_(acc_nd, name='acc', average=True)
-            acc = np.asscalar(acc_nd.asnumpy())
-            val_acc_nd = mx.nd.array([val_acc])
-            hvd.allreduce_(val_acc_nd, name='val_acc', average=True)
-            mx.nd.waitall()
-            val_acc = np.asscalar(val_acc_nd.asnumpy())
+            # allreduce the results
+            allreduce_array_nd = mx.nd.array([train_loss, acc, val_acc])
+            hvd.allreduce_(allreduce_array_nd, name='allreduce_array', average=True)
+            allreduce_array_np = allreduce_array_nd.asnumpy()
+            train_loss = np.asscalar(allreduce_array_np[0])
+            acc = np.asscalar(allreduce_array_np[1])
+            val_acc = np.asscalar(allreduce_array_np[2])
 
             if val_acc > best_val_score:
                 best_val_score = val_acc
@@ -253,7 +253,7 @@ def main():
 
             if rank == 0:
                 logging.info('[Epoch %d] train=%f val=%f loss=%f time: %f' %
-                    (epoch, acc, val_acc, train_loss, time.time()-tic))
+                    (epoch, acc, val_acc, train_loss, toc-tic))
 
                 if save_period and save_dir and (epoch + 1) % save_period == 0:
                     net.save_parameters('%s/cifar10-%s-%d.params'%(save_dir, model_name, epoch))

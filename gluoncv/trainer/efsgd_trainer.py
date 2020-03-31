@@ -35,7 +35,7 @@ import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
 
 class EFSGDTrainer(mx.gluon.Trainer):
-    def __init__(self, params, optimizer, lr, optimizer_params=None, sparse_ratio=0, momentum=0.9, wd=0.0001, nesterov=False):
+    def __init__(self, params, optimizer, lr, optimizer_params=None, row_sparse_ratio=1, layer_sparse_ratio=1, momentum=0.9, wd=0.0001, nesterov=False):
 
         super(EFSGDTrainer, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None, update_on_kvstore = False)
@@ -43,7 +43,8 @@ class EFSGDTrainer(mx.gluon.Trainer):
         self._update_on_kvstore = False
 
         # EF-SGD
-        self._sparse_ratio = sparse_ratio
+        self._row_sparse_ratio = row_sparse_ratio
+        self._layer_sparse_ratio = layer_sparse_ratio
         self._momentum = momentum
         self._nesterov = nesterov
         self._lr = lr
@@ -117,31 +118,35 @@ class EFSGDTrainer(mx.gluon.Trainer):
                     # error feedback
                     e[:] += g
 
-                    # compress
-                    length = m.shape[0]
-                    k = round(length*self._sparse_ratio)
-                    # debug
-                    if k < 1:
-                        logging.info('sparse ratio is too small')
-                    # sparse_index_begin = random.choice(range(length-k+1))
-                    # sparse_index_end = sparse_index_begin + k
-                    sparse_index_begin = random.choice(range(math.ceil(length/k))) * k
-                    sparse_index_end = min(sparse_index_begin + k, length)
-                    
-                    # # # debug
-                    # # logging.info(random.sample(range(10), 4))
-                    # # mx.nd.waitall()
+                    if random.uniform(0,1) <= self._layer_sparse_ratio:
+                        # compress
+                        length = m.shape[0]
+                        k = round(length*self._row_sparse_ratio)
+                        # debug
+                        if k < 1:
+                            logging.info('sparse ratio is too small')
+                            k = 1
+                        # sparse_index_begin = random.choice(range(length-k+1))
+                        # sparse_index_end = sparse_index_begin + k
+                        sparse_index_begin = random.choice(range(math.ceil(length/k))) * k
+                        sparse_index_end = min(sparse_index_begin + k, length)
+                        
+                        # # # debug
+                        # # logging.info(random.sample(range(10), 4))
+                        # # mx.nd.waitall()
 
-                    e_sync = e[sparse_index_begin:sparse_index_end]
-                    # partial sync
-                    allreduce_(e_sync, average=True,
-                               name=str(i), priority=-i)
-                    g[:] = 0
-                    g[sparse_index_begin:sparse_index_end] = e_sync
+                        e_sync = e[sparse_index_begin:sparse_index_end]
+                        # partial sync
+                        allreduce_(e_sync, average=True,
+                                name=str(i), priority=-i)
+                        g[:] = 0
+                        g[sparse_index_begin:sparse_index_end] = e_sync
 
-                    # param.list_data()[0][sparse_index_begin:sparse_index_end] -= e_sync
-                    param.list_data()[0][:] -= g
-                    e[sparse_index_begin:sparse_index_end] = 0
+                        # param.list_data()[0][sparse_index_begin:sparse_index_end] -= e_sync
+                        param.list_data()[0][:] -= g
+                        e[sparse_index_begin:sparse_index_end] = 0
+                    else:
+                        g[:] = 0
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
