@@ -162,11 +162,6 @@ def main():
             val_dataset,
             sampler=SplitSampler(len(val_dataset), num_parts=num_workers, part_index=rank),
             batch_size=batch_size, num_workers=opt.num_workers)
-        
-        # # allreduce val acc is not working
-        # val_data = gluon.data.DataLoader(
-        #     val_dataset,
-        #     batch_size=batch_size, num_workers=opt.num_workers)
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
