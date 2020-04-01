@@ -89,8 +89,8 @@ class EFSGDTrainer(mx.gluon.Trainer):
             # initialize the states
             for i, param in enumerate(self._params):
                 if param.grad_req != 'null':
-                    # e and momentum
-                    self._states.append([zeros_like(param.list_grad()[0]), zeros_like(param.list_grad()[0])])
+                    # e, momentum, momentum for wd
+                    self._states.append([zeros_like(param.list_grad()[0]), zeros_like(param.list_grad()[0]), zeros_like(param.list_grad()[0])])
                     self._params_cache.append(param.list_data()[0].copy())
                 else:
                     self._states.append([])
@@ -102,7 +102,7 @@ class EFSGDTrainer(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # EF-SGD
-                    e, m = self._states[i]
+                    e, m, m_wd = self._states[i]
                     g = param.list_grad()[0]
                     g[:] *= (self._rescale_grad * self._lr)
                     m[:] *= self._momentum
@@ -113,7 +113,9 @@ class EFSGDTrainer(mx.gluon.Trainer):
                         g[:] = m
 
                     # weight decay
-                    param.list_data()[0][:] *= (1-self._lr * self._wd)
+                    # param.list_data()[0][:] *= (1-self._lr * self._wd)
+                    m_wd[:] *= self._momentum
+                    m_wd[:] += self._lr * self._wd * param.list_data()[0]
 
                     # error feedback
                     e[:] += g
@@ -141,12 +143,17 @@ class EFSGDTrainer(mx.gluon.Trainer):
                                 name=str(i), priority=-i)
                         g[:] = 0
                         g[sparse_index_begin:sparse_index_end] = e_sync
-
-                        # param.list_data()[0][sparse_index_begin:sparse_index_end] -= e_sync
-                        param.list_data()[0][:] -= g
                         e[sparse_index_begin:sparse_index_end] = 0
                     else:
                         g[:] = 0
+                    # weight decay
+                    if self._nesterov:
+                        g[:] += self._momentum * m_wd
+                        g[:] += self._lr * self._wd * param.list_data()[0]
+                    else:
+                        g[:] += m_wd
+
+                    param.list_data()[0][:] -= g
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 

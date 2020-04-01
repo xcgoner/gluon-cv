@@ -89,8 +89,8 @@ class ERSGDTrainer(mx.gluon.Trainer):
             # initialize the states
             for i, param in enumerate(self._params):
                 if param.grad_req != 'null':
-                    # r and momentum
-                    self._states.append([zeros_like(param.list_grad()[0]), zeros_like(param.list_grad()[0])])
+                    # r, momentum, momentum for wd
+                    self._states.append([zeros_like(param.list_grad()[0]), zeros_like(param.list_grad()[0]), zeros_like(param.list_grad()[0])])
                     self._params_cache.append(param.list_data()[0].copy())
                 else:
                     self._states.append([])
@@ -102,7 +102,7 @@ class ERSGDTrainer(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # ER-SGD
-                    r, m = self._states[i]
+                    r, m, m_wd = self._states[i]
                     g = param.list_grad()[0]
                     g[:] *= (self._rescale_grad * self._lr)
                     m[:] *= self._momentum
@@ -113,7 +113,16 @@ class ERSGDTrainer(mx.gluon.Trainer):
                         g[:] = m
 
                     # weight decay
-                    param.list_data()[0][:] *= (1-self._lr * self._wd)
+                    # param.list_data()[0][:] *= (1-self._lr * self._wd)
+                    m_wd[:] *= self._momentum
+                    m_wd[:] += self._lr * self._wd * param.list_data()[0]
+                    if self._nesterov:
+                        # param.list_data()[0][:] -= self._lr * self._wd * param.list_data()[0]
+                        param.list_data()[0][:] *= (1-self._lr * self._wd)
+                        param.list_data()[0][:] -= self._momentum * m_wd
+                    else:
+                        param.list_data()[0][:] -= m_wd
+
                     if random.uniform(0,1) <= self._layer_sparse_ratio:
                         # recover x_hat
                         param.list_data()[0][:] += r
