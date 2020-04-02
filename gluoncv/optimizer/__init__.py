@@ -18,11 +18,8 @@
 # under the License.
 
 # pylint: disable=wildcard-import
-"""CV trainer."""
+"""CV optimizer."""
 
-from .ersgd_trainer import ERSGDTrainer
-from .efsgd_trainer import EFSGDTrainer
-
-from .efsgd_trainer_v1 import EFSGDTrainerV1
-from .ersgd_trainer_v1 import ERSGDTrainerV1
-from .ersgd_trainer_v2 import ERSGDTrainerV2
+from .efsgd_v1 import EFSGDV1
+from .ersgd_v1 import ERSGDV1
+from .ersgd_v2 import ERSGDV2

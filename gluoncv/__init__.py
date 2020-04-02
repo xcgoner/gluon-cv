@@ -12,6 +12,7 @@ from . import utils
 from .utils.version import _require_mxnet_version, _deprecate_python2
 from . import loss
 from . import trainer
+from . import optimizer
 
 _deprecate_python2()
 _require_mxnet_version('1.4.0')
