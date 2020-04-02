@@ -137,6 +137,6 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # layer sparse
-                    self._states[i][3] = not random.uniform(0,1) <= self._layer_sparse_ratio:
+                    self._states[i][3] = not random.uniform(0,1) <= self._layer_sparse_ratio
 
 
