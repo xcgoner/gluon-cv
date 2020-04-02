@@ -136,7 +136,9 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
+                    r, m, m_wd, _  = self._updaters[0].states[i]
                     # layer sparse
-                    self._updaters[0].states[i][3] = not random.uniform(0,1) <= self._layer_sparse_ratio
+                    layer_sparse = (not random.uniform(0,1) <= self._layer_sparse_ratio)
+                    self._updaters[0].states[i] = (r, m, m_wd, layer_sparse)
 
 

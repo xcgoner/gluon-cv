@@ -37,10 +37,10 @@ class ERSGDV1(Optimizer):
 
     def create_state(self, _, weight):
         """state creation function."""
-        return [zeros(weight.shape, weight.context, dtype=weight.dtype), #r, remaining error
+        return (zeros(weight.shape, weight.context, dtype=weight.dtype), #r, remaining error
                 zeros(weight.shape, weight.context, dtype=weight.dtype), #m, momentum
                 zeros(weight.shape, weight.context, dtype=weight.dtype), #m_wd, momentum of weight decay
-                False] #layer_sparse
+                False) #layer_sparse
 
     def update(self, index, weight, grad, state):
         """update function"""
