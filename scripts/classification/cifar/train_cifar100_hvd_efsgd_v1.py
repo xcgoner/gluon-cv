@@ -196,7 +196,6 @@ def main():
 
             if epoch == lr_decay_epoch[lr_decay_count]:
                 trainer.set_learning_rate(trainer.learning_rate*lr_decay)
-                trainer._lr *= lr_decay
                 lr_decay_count += 1
 
             for i, batch in enumerate(train_data):
