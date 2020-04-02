@@ -84,7 +84,7 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # ER-SGD
-                    r, _, _ = self._states[i]
+                    r, _, _ = self._updaters[0].states[i]
 
                     if random.uniform(0,1) <= self._layer_sparse_ratio:
                         # compress

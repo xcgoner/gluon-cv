@@ -87,7 +87,7 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # ER-SGD
-                    r, _, _, layer_sparse = self._states[i]
+                    r, _, _, layer_sparse = self._updaters[0].states[i]
 
                     if not layer_sparse:
                         # compress
@@ -113,7 +113,7 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
     
     def _init_params_cache(self):
         if self._params_cache == []:
-            # initialize the states
+            # initialize the cache of params
             for i, param in enumerate(self._params):
                 if param.grad_req != 'null':
                     self._params_cache.append(zeros_like(param.list_data()[0]))
@@ -137,6 +137,6 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # layer sparse
-                    self._states[i][3] = not random.uniform(0,1) <= self._layer_sparse_ratio
+                    self._updaters[0].states[i][3] = not random.uniform(0,1) <= self._layer_sparse_ratio
 
 

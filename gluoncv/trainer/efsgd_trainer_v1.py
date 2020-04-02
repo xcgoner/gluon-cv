@@ -79,7 +79,7 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # EF-SGD
-                    e, _, _ = self._states[i]
+                    e, _, _ = self._updaters[0].states[i]
 
                     if random.uniform(0,1) <= self._layer_sparse_ratio:
                         # compress
