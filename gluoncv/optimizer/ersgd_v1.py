@@ -21,7 +21,7 @@ import warnings
 import numpy
 from mxnet.optimizer import Optimizer, register
 from mxnet.ndarray import zeros, NDArray, full
-from mxnet.ndarray.contrib import ersgd_pre_update
+from mxnet.ndarray import ersgd_pre_update
 
 __all__ = ['ERSGDV1']
 
