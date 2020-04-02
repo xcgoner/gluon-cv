@@ -19,7 +19,7 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
-from gluoncv.trainer.efsgd_trainer_v1 import EFSGDTrainerV1
+from gluoncv.trainer.ersgd_trainer_v1 import ERSGDTrainerV1
 
 np.random.seed(100)
 random.seed(100)
@@ -36,7 +36,7 @@ def parse_args():
                         help='number of preprocessing workers')
     parser.add_argument('--num-epochs', type=int, default=200,
                         help='number of training epochs.')
-    parser.add_argument('--optimizer', type=str, default='EFSGDV1',
+    parser.add_argument('--optimizer', type=str, default='ERSGDV1',
                         help='optimizer')
     parser.add_argument('--lr', type=float, default=0.1,
                         help='learning rate. default is 0.1.')
@@ -66,7 +66,6 @@ def parse_args():
                         help='denominator of the row-sparse ratio')
     parser.add_argument('--layer-sparse', type=float, default=1.,
                         help='denominator of the layer-sparse ratio')
-    parser.add_argument('--test-sync', action='store_true', help='Turn on to sync model before test')
     parser.add_argument('--nesterov', action='store_true', help='Turn on Nesterov for optimizer')
     opt = parser.parse_args()
     return opt
@@ -112,7 +111,7 @@ def main():
     # plot_path = opt.save_plot_dir
 
     logging.basicConfig(level=logging.INFO,
-                    filename="train_cifar100_efsgd_{}_{}_{}_{}.log".format(opt.model, opt.optimizer, opt.batch_size, opt.lr),
+                    filename="train_cifar100_ersgd_{}_{}_{}_{}.log".format(opt.model, opt.optimizer, opt.batch_size, opt.lr),
                     filemode='a')
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
@@ -167,9 +166,9 @@ def main():
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
-        trainer = EFSGDTrainerV1(
+        trainer = ERSGDTrainerV1(
             net.collect_params(),  
-            'EFSGDV1', optimizer_params, 
+            'ERSGDV1', optimizer_params, 
             row_sparse_ratio=1./opt.row_sparse, 
             layer_sparse_ratio=1./opt.layer_sparse)
 
@@ -221,7 +220,11 @@ def main():
             
             train_loss /= batch_size * num_batch
             name, acc = train_metric.get()
+            # name, val_acc = test(ctx, val_data)
+
+            trainer.pre_test()
             name, val_acc = test(ctx, val_data)
+            trainer.post_test()
             
             train_history.update([1-acc, 1-val_acc])
             # train_history.plot(save_path='%s/%s_history.png'%(plot_path, model_name))
