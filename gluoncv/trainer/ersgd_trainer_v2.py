@@ -111,8 +111,8 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
                         r[sparse_index_begin:sparse_index_end] = 0
 
                         # communication counter
-                        self._comm_counter += r_sync.size
-                        self._comm_counter_full += r.size
+                        self._comm_counter += r_sync.size * 2
+                        self._comm_counter_full += r.size * 2
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
     
