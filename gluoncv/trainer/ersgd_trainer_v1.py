@@ -48,6 +48,10 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
         self._params_cache_to_init = True
         self._params_cache = []
 
+        # communication counter
+        self._comm_counter = 0.
+        self._comm_counter_full = 0.
+
     def step(self, batch_size, ignore_stale_grad=False):
         """Makes one step of parameter update. Should be called after
         `autograd.backward()` and outside of `record()` scope.
@@ -108,6 +112,10 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
                         
                         param.list_data()[0][:] -= r
                         r[sparse_index_begin:sparse_index_end] = 0
+
+                        # communication counter
+                        self._comm_counter += r_sync.size
+                        self._comm_counter_full += r.size
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
     

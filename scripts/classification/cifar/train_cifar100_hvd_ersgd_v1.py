@@ -241,11 +241,14 @@ def main():
                 # net.save_parameters('%s/%.4f-cifar-%s-%d-best.params'%(save_dir, best_val_score, model_name, epoch))
 
             if rank == 0:
-                logging.info('[Epoch %d] train=%f val=%f loss=%f time: %f' %
-                    (epoch, acc, val_acc, train_loss, toc-tic))
+                logging.info('[Epoch %d] train=%f val=%f loss=%f comm=%f/%f time: %f' %
+                    (epoch, acc, val_acc, train_loss, trainer._comm_counter, trainer._comm_counter_full, toc-tic))
 
                 if save_period and save_dir and (epoch + 1) % save_period == 0:
                     net.save_parameters('%s/cifar10-%s-%d.params'%(save_dir, model_name, epoch))
+            
+            trainer._comm_counter = 0.
+            trainer._comm_counter_full = 0.
 
         if rank == 0:
             if save_period and save_dir:

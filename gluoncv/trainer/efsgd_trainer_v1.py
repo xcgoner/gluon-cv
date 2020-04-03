@@ -46,6 +46,10 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
         self._row_sparse_ratio = row_sparse_ratio
         self._layer_sparse_ratio = layer_sparse_ratio
 
+        # communication counter
+        self._comm_counter = 0.
+        self._comm_counter_full = 0.
+
     def step(self, batch_size, ignore_stale_grad=False):
         """Makes one step of parameter update. Should be called after
         `autograd.backward()` and outside of `record()` scope.
@@ -98,6 +102,10 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                                 name=str(i), priority=-i)
                         param.list_data()[0][sparse_index_begin:sparse_index_end] -= e_sync
                         e[sparse_index_begin:sparse_index_end] = 0
+
+                        # communication counter
+                        self._comm_counter += e_sync.size
+                        self._comm_counter_full += e.size
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
