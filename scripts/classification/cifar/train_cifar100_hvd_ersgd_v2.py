@@ -69,6 +69,7 @@ def parse_args():
     parser.add_argument('--layer-sparse', type=float, default=1.,
                         help='denominator of the layer-sparse ratio')
     parser.add_argument('--nesterov', action='store_true', help='Turn on Nesterov for optimizer')
+    parser.add_argument('--print-tensor-shape', action='store_true', help='Turn on to print layer shapes')
     opt = parser.parse_args()
     return opt
 
@@ -172,7 +173,8 @@ def main():
             net.collect_params(),  
             'ERSGDV2', optimizer_params, 
             row_sparse_ratio=1./opt.row_sparse, 
-            layer_sparse_ratio=1./opt.layer_sparse)
+            layer_sparse_ratio=1./opt.layer_sparse,
+            print_tensor_shape=opt.print_tensor_shape)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})

@@ -35,7 +35,7 @@ import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
 
 class ERSGDTrainerV2(mx.gluon.Trainer):
-    def __init__(self, params, optimizer='ERSGDV2', optimizer_params=None, row_sparse_ratio=1, layer_sparse_ratio=1):
+    def __init__(self, params, optimizer='ERSGDV2', optimizer_params=None, row_sparse_ratio=1, layer_sparse_ratio=1, print_tensor_shape=False):
 
         super(ERSGDTrainerV2, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None)
@@ -51,6 +51,9 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
         # communication counter
         self._comm_counter = 0.
         self._comm_counter_full = 0.
+
+        # check tensor sizes for debug
+        self._print_tensor_shape = print_tensor_shape
 
     def step(self, batch_size, ignore_stale_grad=False):
         """Makes one step of parameter update. Should be called after
@@ -84,6 +87,13 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
         self._allreduce_grads()
 
     def _allreduce_grads(self):
+
+        if self._print_tensor_shape:
+            for i, param in enumerate(self._params):
+                if param.grad_req != 'null':
+                    print(param.list_data()[0].shape)
+            self._print_tensor_shape = False
+        
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
