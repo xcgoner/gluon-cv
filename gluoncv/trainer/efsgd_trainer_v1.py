@@ -91,7 +91,7 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                         k = round(length*self._row_sparse_ratio)
                         # debug
                         if k < 1:
-                            logging.info('sparse ratio is too small')
+                            # logging.info('sparse ratio is too small')
                             k = 1
                         sparse_index_begin = random.choice(range(math.ceil(length/k))) * k
                         sparse_index_end = min(sparse_index_begin + k, length)

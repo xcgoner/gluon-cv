@@ -1,6 +1,6 @@
-for rowsparse in 20
+for rowsparse in 32 64
 do
-    for layersparse in 1 2 5
+    for layersparse in 1 2 4
     do
         for lr in 0.01 0.05 0.1
         do
