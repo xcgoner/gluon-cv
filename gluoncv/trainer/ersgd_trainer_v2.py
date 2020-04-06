@@ -92,8 +92,9 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
             if hvd.rank() == 0:
                 for i, param in enumerate(self._params):
                     if param.grad_req != 'null':
-                        # print(param.list_data()[0].shape)
-                        print(param)
+                        if param.list_grad()[0].stype == 'default':
+                            # print(param.list_data()[0].shape)
+                            print(param)
             self._print_tensor_shape = False
         
         for i, param in enumerate(self._params):
