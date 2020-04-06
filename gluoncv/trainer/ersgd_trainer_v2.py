@@ -89,10 +89,11 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
     def _allreduce_grads(self):
 
         if self._print_tensor_shape:
-            for i, param in enumerate(self._params):
-                if param.grad_req != 'null':
-                    if hvd.rank() == 0:
-                        print(param.list_data()[0].shape)
+            if hvd.rank() == 0:
+                print(self._params)
+                for i, param in enumerate(self._params):
+                    if param.grad_req != 'null':
+                            print(param.list_data()[0].shape)
             self._print_tensor_shape = False
         
         for i, param in enumerate(self._params):
