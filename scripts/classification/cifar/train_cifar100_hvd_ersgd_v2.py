@@ -154,7 +154,7 @@ def main():
         net.initialize(mx.init.Xavier(), ctx=ctx)
 
         if opt.print_tensor_shape and rank == 0:
-            print(model)
+            print(net)
 
         train_dataset = gluon.data.vision.CIFAR100(train=True).transform_first(transform_train)
 
