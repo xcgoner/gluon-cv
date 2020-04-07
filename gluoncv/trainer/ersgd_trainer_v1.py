@@ -118,7 +118,7 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
 
                             r_sync = r[sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end]
                             print(r.shape)
-                            print(r_sync)
+                            print(r_sync.shape)
                             print([sparse_input_begin, sparse_input_end, sparse_output_begin, sparse_output_end])
                             param.list_data()[0][sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end] += r_sync
                             # partial sync
