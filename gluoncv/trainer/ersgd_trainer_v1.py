@@ -117,8 +117,7 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
                             sparse_output_end = min(sparse_output_begin + k2, output_size)
 
                             r_sync = r[sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end]
-                            print(r_sync.shape)
-                            print(param.list_data()[0][sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end].shape)
+                            print([sparse_input_begin, sparse_input_end, sparse_output_begin, sparse_output_end])
                             param.list_data()[0][sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end] += r_sync
                             # partial sync
                             allreduce_(r_sync, average=True,
