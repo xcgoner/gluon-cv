@@ -116,17 +116,14 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
                             sparse_output_begin = random.choice(range(math.ceil(output_size/k2))) * k2
                             sparse_output_end = min(sparse_output_begin + k2, output_size)
 
-                            r_sync = r[sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end]
-                            print(r.shape)
-                            print(r_sync.shape)
-                            print([sparse_input_begin, sparse_input_end, sparse_output_begin, sparse_output_end])
-                            param.list_data()[0][sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end] += r_sync
+                            r_sync = r[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
+                            param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] += r_sync
                             # partial sync
                             allreduce_(r_sync, average=True,
                                     name=str(i), priority=-i)
                             
-                            param.list_data()[0][sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end] -= r_sync
-                            r[sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end] = 0
+                            param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= r_sync
+                            r[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
                         else:
 
                             r_sync = r[sparse_input_begin:sparse_input_end]
