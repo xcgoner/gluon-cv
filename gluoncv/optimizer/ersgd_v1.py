@@ -23,15 +23,15 @@ from mxnet.optimizer import Optimizer, register
 from mxnet.ndarray import zeros, NDArray, full
 from mxnet.ndarray import ersgd_pre_update
 
-__all__ = ['ERSGDV2']
+__all__ = ['ERSGDV1']
 
 @register
-class ERSGDV2(Optimizer):
+class ERSGDV1(Optimizer):
     """The EF-SGD optimizer.
     """
     def __init__(self, learning_rate=0.1, momentum=0.9, nesterov=True,
                  **kwargs):
-        super(ERSGDV2, self).__init__(learning_rate=learning_rate, **kwargs)
+        super(ERSGDV1, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
         self.nesterov = nesterov
 

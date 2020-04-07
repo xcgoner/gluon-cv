@@ -34,10 +34,10 @@ import logging
 import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
 
-class ERSGDTrainerV2(mx.gluon.Trainer):
+class ERSGDTrainerV1(mx.gluon.Trainer):
     def __init__(self, params, optimizer='ERSGDV1', optimizer_params=None, input_sparse_ratio=1, output_sparse_ratio=1, layer_sparse_ratio=1, print_tensor_shape=False):
 
-        super(ERSGDTrainerV2, self).__init__(
+        super(ERSGDTrainerV1, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None)
         
         self._update_on_kvstore = False
