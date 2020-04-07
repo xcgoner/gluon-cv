@@ -21,7 +21,7 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
-from gluoncv.trainer.ersgd_trainer_v2 import ERSGDTrainerV2
+from gluoncv.trainer.ersgd_trainer_v1 import ERSGDTrainerV1
 
 np.random.seed(100)
 random.seed(100)
@@ -38,7 +38,7 @@ def parse_args():
                         help='number of preprocessing workers')
     parser.add_argument('--num-epochs', type=int, default=200,
                         help='number of training epochs.')
-    parser.add_argument('--optimizer', type=str, default='ERSGDV2',
+    parser.add_argument('--optimizer', type=str, default='ERSGDV1',
                         help='optimizer')
     parser.add_argument('--lr', type=float, default=0.1,
                         help='learning rate. default is 0.1.')
@@ -64,8 +64,10 @@ def parse_args():
                         help='resume training from the model')
     parser.add_argument('--save-plot-dir', type=str, default='.',
                         help='the path to save the history plot')
-    parser.add_argument('--row-sparse', type=float, default=20.,
-                        help='denominator of the row-sparse ratio')
+    parser.add_argument('--input-sparse', type=float, default=20.,
+                        help='denominator of the input-channel-sparse ratio')
+    parser.add_argument('--output-sparse', type=float, default=20.,
+                        help='denominator of the output-channel-sparse ratio')
     parser.add_argument('--layer-sparse', type=float, default=1.,
                         help='denominator of the layer-sparse ratio')
     parser.add_argument('--nesterov', action='store_true', help='Turn on Nesterov for optimizer')
@@ -172,10 +174,11 @@ def main():
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
-        trainer = ERSGDTrainerV2(
+        trainer = ERSGDTrainerV1(
             net.collect_params(),  
-            'ERSGDV2', optimizer_params, 
-            row_sparse_ratio=1./opt.row_sparse, 
+            'ERSGDV1', optimizer_params, 
+            input_sparse_ratio=1./opt.input_sparse, 
+            output_sparse_ratio=1./opt.output_sparse, 
             layer_sparse_ratio=1./opt.layer_sparse,
             print_tensor_shape=opt.print_tensor_shape)
 

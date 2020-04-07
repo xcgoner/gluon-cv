@@ -23,15 +23,15 @@ from mxnet.optimizer import Optimizer, register
 from mxnet.ndarray import zeros, NDArray, full
 from mxnet.ndarray import ersgd_pre_update
 
-__all__ = ['ERSGDV1']
+__all__ = ['ERSGDV2']
 
 @register
-class ERSGDV1(Optimizer):
+class ERSGDV2(Optimizer):
     """The EF-SGD optimizer.
     """
     def __init__(self, learning_rate=0.1, momentum=0.9, nesterov=True,
                  **kwargs):
-        super(ERSGDV1, self).__init__(learning_rate=learning_rate, **kwargs)
+        super(ERSGDV2, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
         self.nesterov = nesterov
 
@@ -39,8 +39,7 @@ class ERSGDV1(Optimizer):
         """state creation function."""
         return (zeros(weight.shape, weight.context, dtype=weight.dtype), #r, remaining error
                 zeros(weight.shape, weight.context, dtype=weight.dtype), #m, momentum
-                zeros(weight.shape, weight.context, dtype=weight.dtype), #m_wd, momentum of weight decay
-                [False]) #layer_sparse
+                zeros(weight.shape, weight.context, dtype=weight.dtype)) #m_wd, momentum of weight decay
 
     def update(self, index, weight, grad, state):
         """update function"""
@@ -55,6 +54,6 @@ class ERSGDV1(Optimizer):
         if self.clip_gradient:
             kwargs['clip_gradient'] = self.clip_gradient
 
-        r, m, m_wd, layer_sparse = state
+        r, m, m_wd = state
         ersgd_pre_update(weight, grad, r, m, m_wd, out=weight,
-                    lr=lr, wd=wd, layer_sparse=layer_sparse, **kwargs)
+                    lr=lr, wd=wd, **kwargs)

@@ -22,4 +22,3 @@
 
 from .efsgd_v1 import EFSGDV1
 from .ersgd_v1 import ERSGDV1
-from .ersgd_v2 import ERSGDV2

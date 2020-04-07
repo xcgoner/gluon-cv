@@ -25,4 +25,3 @@ from .efsgd_trainer import EFSGDTrainer
 
 from .efsgd_trainer_v1 import EFSGDTrainerV1
 from .ersgd_trainer_v1 import ERSGDTrainerV1
-from .ersgd_trainer_v2 import ERSGDTrainerV2

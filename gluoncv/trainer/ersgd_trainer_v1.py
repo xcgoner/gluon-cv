@@ -34,16 +34,17 @@ import logging
 import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
 
-class ERSGDTrainerV1(mx.gluon.Trainer):
-    def __init__(self, params, optimizer='ERSGDV1', optimizer_params=None, row_sparse_ratio=1, layer_sparse_ratio=1):
+class ERSGDTrainerV2(mx.gluon.Trainer):
+    def __init__(self, params, optimizer='ERSGDV1', optimizer_params=None, input_sparse_ratio=1, output_sparse_ratio=1, layer_sparse_ratio=1, print_tensor_shape=False):
 
-        super(ERSGDTrainerV1, self).__init__(
+        super(ERSGDTrainerV2, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None)
         
         self._update_on_kvstore = False
 
         # ER-SGD
-        self._row_sparse_ratio = row_sparse_ratio
+        self._input_sparse_ratio = input_sparse_ratio
+        self._output_sparse_ratio = output_sparse_ratio
         self._layer_sparse_ratio = layer_sparse_ratio
         self._params_cache_to_init = True
         self._params_cache = []
@@ -51,6 +52,9 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
         # communication counter
         self._comm_counter = 0.
         self._comm_counter_full = 0.
+
+        # check tensor sizes for debug
+        self._print_tensor_shape = print_tensor_shape
 
     def step(self, batch_size, ignore_stale_grad=False):
         """Makes one step of parameter update. Should be called after
@@ -75,43 +79,61 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
             self._init_kvstore()
         if self._params_to_init:
             self._init_params()
-
+        
         if self._params_cache_to_init:
             self._init_params_cache()
-
-        # determine the sparse layers first
-        self._assign_layer_sparsity()
 
         self._update(ignore_stale_grad)
 
         self._allreduce_grads()
 
     def _allreduce_grads(self):
+
+        if self._print_tensor_shape:
+            if hvd.rank() == 0:
+                for i, param in enumerate(self._params):
+                    if param.grad_req != 'null':
+                        if param.list_grad()[0].stype == 'default':
+                            # print(param.list_data()[0].shape)
+                            print(param)
+            self._print_tensor_shape = False
+        
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # ER-SGD
-                    r, _, _, layer_sparse = self._updaters[0].states[i]
+                    r, _, _ = self._updaters[0].states[i]
 
-                    if not layer_sparse:
+                    if random.uniform(0,1) <= self._layer_sparse_ratio:
                         # compress
-                        length = r.shape[0]
-                        k = round(length*self._row_sparse_ratio)
-                        # debug
-                        if k < 1:
-                            logging.info('sparse ratio is too small')
-                            k = 1
-                        sparse_index_begin = random.choice(range(math.ceil(length/k))) * k
-                        sparse_index_end = min(sparse_index_begin + k, length)
+                        input_size = r.shape[0]
+                        k1 = max(1, round(input_size*self._input_sparse_ratio))
+                        sparse_input_begin = random.choice(range(math.ceil(input_size/k1))) * k1
+                        sparse_input_end = min(sparse_input_begin + k1, input_size)
+                        if len(r.shape) > 1:
+                            output_size = r.shape[1]
+                            k2 = max(1, round(output_size*self._output_sparse_ratio))
+                            sparse_output_begin = random.choice(range(math.ceil(output_size/k2))) * k2
+                            sparse_output_end = min(sparse_output_begin + k2, output_size)
 
-                        r_sync = r[sparse_index_begin:sparse_index_end]
-                        # partial sync
-                        allreduce_(r_sync, average=True,
-                                name=str(i), priority=-i)
-                        r[sparse_index_begin:sparse_index_end] = r_sync
-                        
-                        param.list_data()[0][:] -= r
-                        r[sparse_index_begin:sparse_index_end] = 0
+                            r_sync = r[sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end]
+                            param.list_data()[0][sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end] += r_sync
+                            # partial sync
+                            allreduce_(r_sync, average=True,
+                                    name=str(i), priority=-i)
+                            
+                            param.list_data()[0][sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end] -= r_sync
+                            r[sparse_input_begin:sparse_input_end][sparse_output_begin:sparse_output_end] = 0
+                        else:
+
+                            r_sync = r[sparse_input_begin:sparse_input_end]
+                            param.list_data()[0][sparse_input_begin:sparse_input_end] += r_sync
+                            # partial sync
+                            allreduce_(r_sync, average=True,
+                                    name=str(i), priority=-i)
+                            
+                            param.list_data()[0][sparse_input_begin:sparse_input_end] -= r_sync
+                            r[sparse_input_begin:sparse_input_end] = 0
 
                         # communication counter
                         self._comm_counter += r_sync.size * 2
@@ -121,7 +143,7 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
     
     def _init_params_cache(self):
         if self._params_cache == []:
-            # initialize the cache of params
+            # initialize the states
             for i, param in enumerate(self._params):
                 if param.grad_req != 'null':
                     self._params_cache.append(zeros_like(param.list_data()[0]))
@@ -139,12 +161,5 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 param.list_data()[0][:] = self._params_cache[i]
-
-    def _assign_layer_sparsity(self):
-        for i, param in enumerate(self._params):
-            if param.grad_req != 'null':
-                if param.list_grad()[0].stype == 'default':
-                    # layer sparse
-                    self._updaters[0].states[i][3][0] = (not random.uniform(0,1) <= self._layer_sparse_ratio)
 
 
