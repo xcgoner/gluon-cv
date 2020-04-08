@@ -23,5 +23,7 @@
 from .ersgd_trainer import ERSGDTrainer
 from .efsgd_trainer import EFSGDTrainer
 
+from .sgd_trainer import SGDTrainer
+
 from .efsgd_trainer_v1 import EFSGDTrainerV1
 from .ersgd_trainer_v1 import ERSGDTrainerV1

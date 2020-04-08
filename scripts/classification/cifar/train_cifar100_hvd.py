@@ -19,6 +19,8 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
+from gluoncv.trainer.sgd_trainer_v1 import SGDTrainer
+
 # CLI
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a model for image classification.')
@@ -153,7 +155,7 @@ def main():
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
-        trainer = hvd.DistributedTrainer(
+        trainer = SGDTrainer(
             net.collect_params(),  
             optimizer,
             optimizer_params)
@@ -221,9 +223,12 @@ def main():
                 best_val_score = val_acc
                 # net.save_parameters('%s/%.4f-cifar-%s-%d-best.params'%(save_dir, best_val_score, model_name, epoch))
 
+            # if rank == 0:
+            #     logging.info('[Epoch %d] train=%f val=%f loss=%f time: %f' %
+            #         (epoch, acc, val_acc, train_loss, toc-tic))
             if rank == 0:
-                logging.info('[Epoch %d] train=%f val=%f loss=%f time: %f' %
-                    (epoch, acc, val_acc, train_loss, toc-tic))
+                logging.info('[Epoch %d] train=%f val=%f loss=%f comm=%.2f/%.2f time: %f' %
+                    (epoch, acc, val_acc, train_loss, trainer._comm_counter/1e6, trainer._comm_counter_full/1e6, toc-tic))
 
                 if save_period and save_dir and (epoch + 1) % save_period == 0:
                     net.save_parameters('%s/cifar10-%s-%d.params'%(save_dir, model_name, epoch))

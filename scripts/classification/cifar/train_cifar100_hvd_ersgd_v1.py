@@ -71,6 +71,8 @@ def parse_args():
     parser.add_argument('--layer-sparse', type=float, default=1.,
                         help='denominator of the layer-sparse ratio')
     parser.add_argument('--nesterov', action='store_true', help='Turn on Nesterov for optimizer')
+    parser.add_argument('--kernel-version', type=int, default=1,
+                        help='version of operator kernel')
     parser.add_argument('--print-tensor-shape', action='store_true', help='Turn on to print layer shapes')
     opt = parser.parse_args()
     return opt
@@ -138,7 +140,7 @@ def main():
     ])
 
     optimizer_params = {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum, 
-                        'nesterov': opt.nesterov}
+                        'nesterov': opt.nesterov, 'version': opt.kernel_version}
 
     def test(ctx, val_data):
         metric = mx.metric.Accuracy()

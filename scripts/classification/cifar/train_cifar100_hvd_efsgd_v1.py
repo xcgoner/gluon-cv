@@ -62,8 +62,10 @@ def parse_args():
                         help='resume training from the model')
     parser.add_argument('--save-plot-dir', type=str, default='.',
                         help='the path to save the history plot')
-    parser.add_argument('--row-sparse', type=float, default=20.,
-                        help='denominator of the row-sparse ratio')
+    parser.add_argument('--input-sparse', type=float, default=20.,
+                        help='denominator of the input-channel-sparse ratio')
+    parser.add_argument('--output-sparse', type=float, default=20.,
+                        help='denominator of the output-channel-sparse ratio')
     parser.add_argument('--layer-sparse', type=float, default=1.,
                         help='denominator of the layer-sparse ratio')
     parser.add_argument('--test-sync', action='store_true', help='Turn on to sync model before test')
@@ -170,7 +172,8 @@ def main():
         trainer = EFSGDTrainerV1(
             net.collect_params(),  
             'EFSGDV1', optimizer_params, 
-            row_sparse_ratio=1./opt.row_sparse, 
+            input_sparse_ratio=1./opt.input_sparse, 
+            output_sparse_ratio=1./opt.output_sparse,  
             layer_sparse_ratio=1./opt.layer_sparse)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
