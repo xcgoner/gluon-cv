@@ -9,7 +9,7 @@ do
                 horovodrun -np 4 -H localhost:4 python3 train_cifar100_hvd_ersgd_v1.py \
                 --model cifar_wideresnet40_8 --optimizer ersgdv1 --lr ${lr} --lr-decay 0.2 --nesterov \
                 --lr-decay-epoch 60,120,160 --wd 0.0005 --num-epochs 200 --batch-size ${batchsize} \
-                --input-sparse ${rowsparse} --output-sparse ${rowsparse} --layer-sparse ${layersparse} 
+                --input-sparse ${rowsparse} --output-sparse ${rowsparse} --layer-sparse ${layersparse} --kernel-version 1
                 sleep 60
             done
         done
