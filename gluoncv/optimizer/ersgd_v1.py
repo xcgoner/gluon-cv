@@ -30,10 +30,11 @@ class ERSGDV1(Optimizer):
     """The EF-SGD optimizer.
     """
     def __init__(self, learning_rate=0.1, momentum=0.9, nesterov=True,
-                 **kwargs):
+                 version=0, **kwargs):
         super(ERSGDV1, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
         self.nesterov = nesterov
+        self.version = version
 
     def create_state(self, _, weight):
         """state creation function."""
@@ -50,7 +51,7 @@ class ERSGDV1(Optimizer):
         wd = self._get_wd(index)
 
         kwargs = {'momentum': self.momentum, 'nesterov': self.nesterov, 
-                  'rescale_grad': self.rescale_grad}
+                  'version': self.version, 'rescale_grad': self.rescale_grad}
         if self.clip_gradient:
             kwargs['clip_gradient'] = self.clip_gradient
 
