@@ -75,7 +75,7 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
         if self._params_to_init:
             self._init_params()
 
-        self._update(ignore_stale_grad)
+        # self._update(ignore_stale_grad)
 
         self._allreduce_grads()
 
@@ -112,9 +112,9 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                         #     param.list_data()[0][sparse_input_begin:sparse_input_end] -= e_sync
                         #     e[sparse_input_begin:sparse_input_end] = 0
 
-                        # communication counter
-                        self._comm_counter += e_sync.size * 2
-                        self._comm_counter_full += e.size * 2
+                        # # communication counter
+                        # self._comm_counter += e_sync.size * 2
+                        # self._comm_counter_full += e.size * 2
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
