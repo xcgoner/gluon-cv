@@ -73,7 +73,7 @@ def parse_args():
     parser.add_argument('--nesterov', action='store_true', help='Turn on Nesterov for optimizer')
     parser.add_argument('--kernel-version', type=int, default=1,
                         help='version of operator kernel')
-    parser.add_argument('--warmup-epochs', type=int, default=5,
+    parser.add_argument('--warmup-epochs', type=int, default=0,
                         help='number of warm-up epochs.')
     parser.add_argument('--print-tensor-shape', action='store_true', help='Turn on to print layer shapes')
     opt = parser.parse_args()

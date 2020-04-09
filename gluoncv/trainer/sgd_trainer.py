@@ -47,7 +47,6 @@ class SGDTrainer(mx.gluon.Trainer):
         self._comm_counter_full = 0.
 
     def _allreduce_grads(self):
-        if size() == 1: return
 
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
