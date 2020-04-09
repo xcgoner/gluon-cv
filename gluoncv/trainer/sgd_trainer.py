@@ -42,6 +42,8 @@ class SGDTrainer(mx.gluon.Trainer):
         
         self._update_on_kvstore = False
 
+        self._scale /= size()
+
         # communication counter
         self._comm_counter = 0.
         self._comm_counter_full = 0.
@@ -50,13 +52,11 @@ class SGDTrainer(mx.gluon.Trainer):
 
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
-                allreduce_(param.list_grad()[0], average=True,
+                allreduce_(param.list_grad()[0], average=False,
                            name=param.name, priority=-i)
 
                 # communication counter
                 self._comm_counter += param.list_grad()[0].size * 2
                 self._comm_counter_full = self._comm_counter
-            else:
-                raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
 

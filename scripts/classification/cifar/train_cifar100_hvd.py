@@ -155,15 +155,15 @@ def main():
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
-        trainer = hvd.DistributedTrainer(
-            net.collect_params(),  
-            optimizer,
-            optimizer_params)
-
-        # trainer = SGDTrainer(
+        # trainer = hvd.DistributedTrainer(
         #     net.collect_params(),  
         #     optimizer,
         #     optimizer_params)
+
+        trainer = SGDTrainer(
+            net.collect_params(),  
+            optimizer,
+            optimizer_params)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})
@@ -237,6 +237,9 @@ def main():
 
                 if save_period and save_dir and (epoch + 1) % save_period == 0:
                     net.save_parameters('%s/cifar10-%s-%d.params'%(save_dir, model_name, epoch))
+
+            trainer._comm_counter = 0.
+            trainer._comm_counter_full = 0.
 
         if rank == 0:
             if save_period and save_dir:
