@@ -215,7 +215,7 @@ def main():
                 lr_decay_count += 1
 
             if epoch < opt.warmup_epochs:
-                trainer.set_learning_rate(lr*(epoch+1)/opt.warmup_epochs)
+                trainer.set_learning_rate(lr*min(1, (epoch+1) * opt.warmup_epochs ** (-1.5)))
 
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
