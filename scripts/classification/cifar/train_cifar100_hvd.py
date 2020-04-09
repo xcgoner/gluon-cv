@@ -155,10 +155,15 @@ def main():
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
-        trainer = SGDTrainer(
+        trainer = hvd.DistributedTrainer(
             net.collect_params(),  
             optimizer,
             optimizer_params)
+
+        # trainer = SGDTrainer(
+        #     net.collect_params(),  
+        #     optimizer,
+        #     optimizer_params)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})
