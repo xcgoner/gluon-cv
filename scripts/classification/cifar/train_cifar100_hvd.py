@@ -19,7 +19,7 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
-from gluoncv.trainer.sgd_trainer_v1 import SGDTrainer
+from gluoncv.trainer.sgd_trainer import SGDTrainer
 
 # CLI
 def parse_args():
