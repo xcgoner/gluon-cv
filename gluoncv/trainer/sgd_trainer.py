@@ -33,6 +33,7 @@ import logging
 
 import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
+from horovod.mxnet.mpi_ops import size
 
 class SGDTrainer(mx.gluon.Trainer):
     def __init__(self, params, optimizer='nag', optimizer_params=None):
