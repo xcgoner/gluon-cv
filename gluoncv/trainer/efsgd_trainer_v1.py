@@ -75,7 +75,7 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
         if self._params_to_init:
             self._init_params()
 
-        # self._update(ignore_stale_grad)
+        self._update(ignore_stale_grad)
 
         self._allreduce_grads()
 
@@ -93,28 +93,28 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                         sparse_input_begin = random.choice(range(math.ceil(input_size/k1))) * k1
                         sparse_input_end = min(sparse_input_begin + k1, input_size)
 
-                        # if len(e.shape) > 1:
-                        #     output_size = e.shape[1]
-                        #     k2 = max(1, round(output_size*self._output_sparse_ratio))
-                        #     sparse_output_begin = random.choice(range(math.ceil(output_size/k2))) * k2
-                        #     sparse_output_end = min(sparse_output_begin + k2, output_size)
-                        #     e_sync = e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
-                        #     # partial sync
-                        #     allreduce_(e_sync, average=True,
-                        #                 name=str(i), priority=-i)
-                        #     param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= e_sync
-                        #     e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
-                        # else:
-                        #     e_sync = e[sparse_input_begin:sparse_input_end]
-                        #     # partial sync
-                        #     allreduce_(e_sync, average=True,
-                        #             name=str(i), priority=-i)
-                        #     param.list_data()[0][sparse_input_begin:sparse_input_end] -= e_sync
-                        #     e[sparse_input_begin:sparse_input_end] = 0
+                        if len(e.shape) > 1:
+                            output_size = e.shape[1]
+                            k2 = max(1, round(output_size*self._output_sparse_ratio))
+                            sparse_output_begin = random.choice(range(math.ceil(output_size/k2))) * k2
+                            sparse_output_end = min(sparse_output_begin + k2, output_size)
+                            e_sync = e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
+                            # partial sync
+                            allreduce_(e_sync, average=True,
+                                        name=str(i), priority=-i)
+                            param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= e_sync
+                            e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
+                        else:
+                            e_sync = e[sparse_input_begin:sparse_input_end]
+                            # partial sync
+                            allreduce_(e_sync, average=True,
+                                    name=str(i), priority=-i)
+                            param.list_data()[0][sparse_input_begin:sparse_input_end] -= e_sync
+                            e[sparse_input_begin:sparse_input_end] = 0
 
-                        # # communication counter
-                        # self._comm_counter += e_sync.size * 2
-                        # self._comm_counter_full += e.size * 2
+                        # communication counter
+                        self._comm_counter += e_sync.size * 2
+                        self._comm_counter_full += e.size * 2
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
