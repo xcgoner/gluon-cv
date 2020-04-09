@@ -101,7 +101,7 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                             e_sync = e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
                             # partial sync
                             allreduce_(e_sync, average=True,
-                                    name=str(i), priority=-i)
+                                        name=str(i), priority=-i)
                             param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= e_sync
                             e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
                         else:
