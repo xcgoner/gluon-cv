@@ -112,13 +112,6 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                         #     param.list_data()[0][sparse_input_begin:sparse_input_end] -= e_sync
                         #     e[sparse_input_begin:sparse_input_end] = 0
 
-                        e_sync = e[sparse_input_begin:sparse_input_end]
-                        # partial sync
-                        allreduce_(e_sync, average=True,
-                                name=str(i), priority=-i)
-                        param.list_data()[0][sparse_input_begin:sparse_input_end] -= e_sync
-                        e[sparse_input_begin:sparse_input_end] = 0
-
                         # communication counter
                         self._comm_counter += e_sync.size * 2
                         self._comm_counter_full += e.size * 2
