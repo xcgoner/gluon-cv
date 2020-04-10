@@ -155,7 +155,7 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
                                        name=str(i), priority=-i)
 
     def _init_states(self):
-        if self._e == [] and self.x == []:
+        if self._e == [] and self._x == []:
             # initialize the remaining error
             for i, param in enumerate(self._params):
                 if param.grad_req != 'null':
