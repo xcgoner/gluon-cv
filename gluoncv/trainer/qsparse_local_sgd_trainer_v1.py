@@ -34,10 +34,10 @@ import logging
 import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
 
-class ERSGDTrainerV1(mx.gluon.Trainer):
-    def __init__(self, params, optimizer='ERSGDV1', optimizer_params=None, input_sparse_ratio=1, output_sparse_ratio=1, layer_sparse_ratio=1, local_sgd_interval):
+class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
+    def __init__(self, params, optimizer='nag', optimizer_params=None, input_sparse_ratio=1, output_sparse_ratio=1, layer_sparse_ratio=1, local_sgd_interval=4):
 
-        super(ERSGDTrainerV1, self).__init__(
+        super(QSparseLocalSGDTrainerV1, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None)
         
         self._update_on_kvstore = False
@@ -51,6 +51,9 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
 
         self._params_cache_to_init = True
         self._params_cache = []
+        self._states_to_init = True
+        self._e = []
+        self._x = []
 
         # communication counter
         self._comm_counter = 0.
@@ -83,7 +86,11 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
         if self._params_cache_to_init:
             self._init_params_cache()
 
+        if self._states_to_init:
+            self._init_states()
+
         if self._local_sgd_counter == 0:
+            # sychronized in last iteraion, cache the current model
             for i, param in enumerate(self._params):
                 if param.grad_req != 'null':
                     self._params_cache[i][:] = param.list_data()[0]
@@ -94,51 +101,50 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
         self._local_sgd_counter += 1
         if self._local_sgd_counter == self._local_sgd_interval:
             self._local_sgd_counter = 0
+            self._allreduce_params()
 
-        self._allreduce_grads()
-
-    def _allreduce_grads(self):
+    def _allreduce_params(self):
         
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # ER-SGD
-                    r, _, _ = self._updaters[0].states[i]
+                    e = self._e[i]
+                    x = self._x[i]
+
+                    e[:] += param.list_data()[0]
+                    e[:] -= x
+                    param.list_data()[0][:] = x
 
                     if random.uniform(0,1) <= self._layer_sparse_ratio:
                         # compress
-                        input_size = r.shape[0]
+                        input_size = e.shape[0]
                         k1 = max(1, round(input_size*self._input_sparse_ratio))
                         sparse_input_begin = random.choice(range(math.ceil(input_size/k1))) * k1
                         sparse_input_end = min(sparse_input_begin + k1, input_size)
-                        if len(r.shape) > 1:
-                            output_size = r.shape[1]
+
+                        if len(e.shape) > 1:
+                            output_size = e.shape[1]
                             k2 = max(1, round(output_size*self._output_sparse_ratio))
                             sparse_output_begin = random.choice(range(math.ceil(output_size/k2))) * k2
                             sparse_output_end = min(sparse_output_begin + k2, output_size)
-
-                            r_sync = r[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
-                            param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] += r_sync
+                            e_sync = e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
                             # partial sync
-                            allreduce_(r_sync, average=True,
-                                    name=str(i), priority=-i)
-                            
-                            param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= r_sync
-                            r[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
+                            allreduce_(e_sync, average=True,
+                                        name=str(i), priority=-i)
+                            param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] += e_sync
+                            e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
                         else:
-
-                            r_sync = r[sparse_input_begin:sparse_input_end]
-                            param.list_data()[0][sparse_input_begin:sparse_input_end] += r_sync
+                            e_sync = e[sparse_input_begin:sparse_input_end]
                             # partial sync
-                            allreduce_(r_sync, average=True,
+                            allreduce_(e_sync, average=True,
                                     name=str(i), priority=-i)
-                            
-                            param.list_data()[0][sparse_input_begin:sparse_input_end] -= r_sync
-                            r[sparse_input_begin:sparse_input_end] = 0
+                            param.list_data()[0][sparse_input_begin:sparse_input_end] += e_sync
+                            e[sparse_input_begin:sparse_input_end] = 0
 
                         # communication counter
-                        self._comm_counter += r_sync.size * 2
-                        self._comm_counter_full += r.size * 2
+                        self._comm_counter += e_sync.size * 2
+                        self._comm_counter_full += e.size * 2
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
@@ -147,10 +153,22 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 hvd.allreduce_(param.list_data()[0], average=True, 
                                        name=str(i), priority=-i)
+
+    def _init_states(self):
+        if self._e == [] and self.x == []:
+            # initialize the remaining error
+            for i, param in enumerate(self._params):
+                if param.grad_req != 'null':
+                    self._e.append(zeros_like(param.list_data()[0]))
+                    self._x.append(zeros_like(param.list_data()[0]))
+                else:
+                    self._e.append([])
+                    self._x.append([])
+        self._states_to_init = False
     
     def _init_params_cache(self):
         if self._params_cache == []:
-            # initialize the states
+            # initialize the cached params
             for i, param in enumerate(self._params):
                 if param.grad_req != 'null':
                     self._params_cache.append(zeros_like(param.list_data()[0]))

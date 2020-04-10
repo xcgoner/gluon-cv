@@ -27,3 +27,5 @@ from .sgd_trainer import SGDTrainer
 
 from .efsgd_trainer_v1 import EFSGDTrainerV1
 from .ersgd_trainer_v1 import ERSGDTrainerV1
+
+from .qsparse_local_sgd_trainer_v1 import QSparseLocalSGDTrainerV1

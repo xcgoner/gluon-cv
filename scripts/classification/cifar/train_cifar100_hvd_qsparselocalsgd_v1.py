@@ -21,7 +21,7 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
-from gluoncv.trainer.ersgd_trainer_v1 import ERSGDTrainerV1
+from gluoncv.trainer.qsparse_local_sgd_trainer_v1 import QSparseLocalSGDTrainerV1
 
 np.random.seed(100)
 random.seed(100)
@@ -73,9 +73,8 @@ def parse_args():
     parser.add_argument('--nesterov', action='store_true', help='Turn on Nesterov for optimizer')
     parser.add_argument('--kernel-version', type=int, default=1,
                         help='version of operator kernel')
-    parser.add_argument('--warmup-epochs', type=int, default=0,
-                        help='number of warm-up epochs.')
-    parser.add_argument('--print-tensor-shape', action='store_true', help='Turn on to print layer shapes')
+    parser.add_argument('--local-sgd-interval', type=int, default=4,
+                        help='interval for model synchronization')
     opt = parser.parse_args()
     return opt
 
@@ -178,13 +177,13 @@ def main():
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
-        trainer = ERSGDTrainerV1(
+        trainer = QSparseLocalSGDTrainerV1(
             net.collect_params(),  
-            'ERSGDV1', optimizer_params, 
+            'nag', optimizer_params, 
             input_sparse_ratio=1./opt.input_sparse, 
             output_sparse_ratio=1./opt.output_sparse, 
             layer_sparse_ratio=1./opt.layer_sparse,
-            print_tensor_shape=opt.print_tensor_shape)
+            local_sgd_interval=opt.local_sgd_interval)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})
@@ -213,9 +212,6 @@ def main():
                 lr *= lr_decay
                 trainer.set_learning_rate(lr)
                 lr_decay_count += 1
-
-            if epoch < opt.warmup_epochs:
-                trainer.set_learning_rate(lr*(epoch+1)/opt.warmup_epochs)
 
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
