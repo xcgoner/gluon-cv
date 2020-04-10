@@ -93,7 +93,7 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
             # sychronized in last iteraion, cache the current model
             for i, param in enumerate(self._params):
                 if param.grad_req != 'null':
-                    self._params_cache[i][:] = param.list_data()[0]
+                    self._x[i][:] = param.list_data()[0]
 
         self._update(ignore_stale_grad)
 
