@@ -200,7 +200,7 @@ def main():
         lr = opt.lr
 
         if opt.warmup:
-            warmup_epochs = max(4, round(opt.input_sparse * opt.output_sparse * opt.layer_sparse * 5. / 128. * op.lr / 0.05))
+            warmup_epochs = max(4, round(opt.input_sparse * opt.output_sparse * opt.layer_sparse * 5. / 128. * opt.lr / 0.05))
         else:
             warmup_epochs = 0
 
