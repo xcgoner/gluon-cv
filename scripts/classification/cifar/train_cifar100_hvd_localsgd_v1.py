@@ -64,8 +64,6 @@ def parse_args():
                         help='resume training from the model')
     parser.add_argument('--save-plot-dir', type=str, default='.',
                         help='the path to save the history plot')
-    parser.add_argument('--kernel-version', type=int, default=1,
-                        help='version of operator kernel')
     parser.add_argument('--local-sgd-interval', type=int, default=4,
                         help='interval for model synchronization')
     opt = parser.parse_args()
@@ -169,12 +167,9 @@ def main():
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
-        trainer = QSparseLocalSGDTrainerV1(
+        trainer = LocalSGDTrainerV1(
             net.collect_params(),  
             'nag', optimizer_params, 
-            input_sparse_ratio=1./opt.input_sparse, 
-            output_sparse_ratio=1./opt.output_sparse, 
-            layer_sparse_ratio=1./opt.layer_sparse,
             local_sgd_interval=opt.local_sgd_interval)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
