@@ -34,26 +34,20 @@ import logging
 import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
 
-class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
-    def __init__(self, params, optimizer='nag', optimizer_params=None, input_sparse_ratio=1, output_sparse_ratio=1, layer_sparse_ratio=1, local_sgd_interval=4):
+class LocalSGDTrainerV1(mx.gluon.Trainer):
+    def __init__(self, params, optimizer='nag', optimizer_params=None, local_sgd_interval=4):
 
-        super(QSparseLocalSGDTrainerV1, self).__init__(
+        super(LocalSGDTrainerV1, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None)
         
         self._update_on_kvstore = False
 
-        # QSparse-local-SGD
-        self._input_sparse_ratio = input_sparse_ratio
-        self._output_sparse_ratio = output_sparse_ratio
-        self._layer_sparse_ratio = layer_sparse_ratio
+        # local-SGD
         self._local_sgd_interval = local_sgd_interval
         self._local_sgd_counter = 0
 
         self._params_cache_to_init = True
         self._params_cache = []
-        self._states_to_init = True
-        self._e = []
-        self._x = []
 
         # communication counter
         self._comm_counter = 0.
@@ -86,15 +80,6 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
         if self._params_cache_to_init:
             self._init_params_cache()
 
-        if self._states_to_init:
-            self._init_states()
-
-        if self._local_sgd_counter == 0:
-            # sychronized in last iteraion, cache the current model
-            for i, param in enumerate(self._params):
-                if param.grad_req != 'null':
-                    self._x[i][:] = param.list_data()[0]
-
         self._update(ignore_stale_grad)
 
         # local sgd
@@ -107,46 +92,12 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
         
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
-                if param.list_grad()[0].stype == 'default':
-                    # QSparse-local-SGD
-                    e = self._e[i]
-                    x = self._x[i]
+                hvd.allreduce_(param.list_data()[0], average=True, 
+                                name=str(i), priority=-i)
 
-                    e[:] += param.list_data()[0]
-                    e[:] -= x
-                    param.list_data()[0][:] = x
-
-                    if random.uniform(0,1) <= self._layer_sparse_ratio:
-                        # compress
-                        input_size = e.shape[0]
-                        k1 = max(1, round(input_size*self._input_sparse_ratio))
-                        sparse_input_begin = random.choice(range(math.ceil(input_size/k1))) * k1
-                        sparse_input_end = min(sparse_input_begin + k1, input_size)
-
-                        if len(e.shape) > 1:
-                            output_size = e.shape[1]
-                            k2 = max(1, round(output_size*self._output_sparse_ratio))
-                            sparse_output_begin = random.choice(range(math.ceil(output_size/k2))) * k2
-                            sparse_output_end = min(sparse_output_begin + k2, output_size)
-                            e_sync = e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
-                            # partial sync
-                            allreduce_(e_sync, average=True,
-                                        name=str(i), priority=-i)
-                            param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] += e_sync
-                            e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
-                        else:
-                            e_sync = e[sparse_input_begin:sparse_input_end]
-                            # partial sync
-                            allreduce_(e_sync, average=True,
-                                    name=str(i), priority=-i)
-                            param.list_data()[0][sparse_input_begin:sparse_input_end] += e_sync
-                            e[sparse_input_begin:sparse_input_end] = 0
-
-                        # communication counter
-                        self._comm_counter += e_sync.size * 2
-                        self._comm_counter_full += e.size * 2
-                else:
-                    raise ValueError("Cannot pull row_sparse parameters for local SGD")
+                # communication counter
+                self._comm_counter += param.list_data()[0].size * 2
+                self._comm_counter_full = self._comm_counter
 
     def allreduce_params(self):
         for i, param in enumerate(self._params):

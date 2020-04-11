@@ -21,7 +21,7 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
-from gluoncv.trainer.qsparse_local_sgd_trainer_v1 import QSparseLocalSGDTrainerV1
+from gluoncv.trainer.ersgd2_trainer_v1 import ERSGD2TrainerV1
 
 np.random.seed(100)
 random.seed(100)
@@ -64,16 +64,24 @@ def parse_args():
                         help='resume training from the model')
     parser.add_argument('--save-plot-dir', type=str, default='.',
                         help='the path to save the history plot')
-    parser.add_argument('--input-sparse', type=float, default=20.,
+    parser.add_argument('--input-sparse-1', type=float, default=20.,
                         help='denominator of the input-channel-sparse ratio')
-    parser.add_argument('--output-sparse', type=float, default=20.,
+    parser.add_argument('--output-sparse-1', type=float, default=20.,
                         help='denominator of the output-channel-sparse ratio')
-    parser.add_argument('--layer-sparse', type=float, default=1.,
+    parser.add_argument('--layer-sparse-1', type=float, default=1.,
                         help='denominator of the layer-sparse ratio')
+    parser.add_argument('--input-sparse-2', type=float, default=20.,
+                        help='denominator of the input-channel-sparse ratio')
+    parser.add_argument('--output-sparse-2', type=float, default=20.,
+                        help='denominator of the output-channel-sparse ratio')
+    parser.add_argument('--layer-sparse-2', type=float, default=1.,
+                        help='denominator of the layer-sparse ratio')
+    parser.add_argument('--nesterov', action='store_true', help='Turn on Nesterov for optimizer')
     parser.add_argument('--kernel-version', type=int, default=1,
                         help='version of operator kernel')
     parser.add_argument('--local-sgd-interval', type=int, default=4,
                         help='interval for model synchronization')
+    parser.add_argument('--warmup', action='store_true', help='Turn on learning rate warmup')
     opt = parser.parse_args()
     return opt
 
@@ -118,7 +126,7 @@ def main():
     # plot_path = opt.save_plot_dir
 
     logging.basicConfig(level=logging.INFO,
-                    filename="train_cifar100_qsparselocalsgd_{}_{}_{}_{}.log".format(opt.model, opt.optimizer, opt.batch_size, opt.lr),
+                    filename="train_cifar100_ersgd2_{}_{}_{}_{}.log".format(opt.model, opt.optimizer, opt.batch_size, opt.lr),
                     filemode='a')
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
@@ -139,7 +147,8 @@ def main():
         transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])
     ])
 
-    optimizer_params = {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum}
+    optimizer_params = {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum, 
+                        'nesterov': opt.nesterov, 'version': opt.kernel_version}
 
     def test(ctx, val_data):
         metric = mx.metric.Accuracy()
@@ -175,12 +184,15 @@ def main():
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
-        trainer = QSparseLocalSGDTrainerV1(
+        trainer = ERSGD2TrainerV1(
             net.collect_params(),  
-            'nag', optimizer_params, 
-            input_sparse_ratio=1./opt.input_sparse, 
-            output_sparse_ratio=1./opt.output_sparse, 
-            layer_sparse_ratio=1./opt.layer_sparse,
+            'ERSGDV1', optimizer_params, 
+            input_sparse_ratio_1=1./opt.input_sparse_1, 
+            output_sparse_ratio_1=1./opt.output_sparse_1, 
+            layer_sparse_ratio_1=1./opt.layer_sparse_1,
+            input_sparse_ratio_2=1./opt.input_sparse_2, 
+            output_sparse_ratio_2=1./opt.output_sparse_2, 
+            layer_sparse_ratio_2=1./opt.layer_sparse_2,
             local_sgd_interval=opt.local_sgd_interval)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
@@ -198,6 +210,11 @@ def main():
 
         lr = opt.lr
 
+        if opt.warmup:
+            warmup_epochs = max(4, round(opt.input_sparse * opt.output_sparse * opt.layer_sparse * 5. / 128. * op.lr / 0.05))
+        else:
+            warmup_epochs = 0
+
         for epoch in range(epochs):
             tic = time.time()
             train_metric.reset()
@@ -210,6 +227,9 @@ def main():
                 lr *= lr_decay
                 trainer.set_learning_rate(lr)
                 lr_decay_count += 1
+
+            if epoch < warmup_epochs:
+                trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
 
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)

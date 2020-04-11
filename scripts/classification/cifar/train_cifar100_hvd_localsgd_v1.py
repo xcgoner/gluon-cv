@@ -21,7 +21,7 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
-from gluoncv.trainer.qsparse_local_sgd_trainer_v1 import QSparseLocalSGDTrainerV1
+from gluoncv.trainer.local_sgd_trainer_v1 import LocalSGDTrainerV1
 
 np.random.seed(100)
 random.seed(100)
@@ -64,12 +64,6 @@ def parse_args():
                         help='resume training from the model')
     parser.add_argument('--save-plot-dir', type=str, default='.',
                         help='the path to save the history plot')
-    parser.add_argument('--input-sparse', type=float, default=20.,
-                        help='denominator of the input-channel-sparse ratio')
-    parser.add_argument('--output-sparse', type=float, default=20.,
-                        help='denominator of the output-channel-sparse ratio')
-    parser.add_argument('--layer-sparse', type=float, default=1.,
-                        help='denominator of the layer-sparse ratio')
     parser.add_argument('--kernel-version', type=int, default=1,
                         help='version of operator kernel')
     parser.add_argument('--local-sgd-interval', type=int, default=4,

@@ -73,8 +73,7 @@ def parse_args():
     parser.add_argument('--nesterov', action='store_true', help='Turn on Nesterov for optimizer')
     parser.add_argument('--kernel-version', type=int, default=1,
                         help='version of operator kernel')
-    parser.add_argument('--warmup-epochs', type=int, default=0,
-                        help='number of warm-up epochs.')
+    parser.add_argument('--warmup', action='store_true', help='Turn on learning rate warmup')
     parser.add_argument('--print-tensor-shape', action='store_true', help='Turn on to print layer shapes')
     opt = parser.parse_args()
     return opt
@@ -201,6 +200,11 @@ def main():
 
         lr = opt.lr
 
+        if opt.warmup:
+            warmup_epochs = max(4, round(opt.input_sparse * opt.output_sparse * opt.layer_sparse * 5. / 128. * op.lr / 0.05))
+        else:
+            warmup_epochs = 0
+
         for epoch in range(epochs):
             tic = time.time()
             train_metric.reset()
@@ -214,8 +218,8 @@ def main():
                 trainer.set_learning_rate(lr)
                 lr_decay_count += 1
 
-            if epoch < opt.warmup_epochs:
-                trainer.set_learning_rate(lr*(epoch+1)/opt.warmup_epochs)
+            if epoch < warmup_epochs:
+                trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
 
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
