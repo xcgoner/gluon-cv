@@ -159,17 +159,20 @@ def main():
 
         train_dataset = gluon.data.vision.CIFAR100(train=True).transform_first(transform_train)
 
-        val_dataset = gluon.data.vision.CIFAR100(train=False).transform_first(transform_test)
-
         train_data = gluon.data.DataLoader(
             train_dataset,
             sampler=SplitSampler(len(train_dataset), num_parts=num_workers, part_index=rank),
             batch_size=batch_size, last_batch='discard', num_workers=opt.num_workers)
 
+        # val_dataset = gluon.data.vision.CIFAR100(train=False).transform_first(transform_test)
+        # val_data = gluon.data.DataLoader(
+        #     val_dataset,
+        #     sampler=SplitSampler(len(val_dataset), num_parts=num_workers, part_index=rank),
+        #     batch_size=batch_size, num_workers=opt.num_workers)
+
         val_data = gluon.data.DataLoader(
-            val_dataset,
-            sampler=SplitSampler(len(val_dataset), num_parts=num_workers, part_index=rank),
-            batch_size=batch_size, num_workers=opt.num_workers)
+            gluon.data.vision.CIFAR100(train=False).transform_first(transform_test),
+            batch_size=batch_size, shuffle=False, num_workers=opt.num_workers)
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
