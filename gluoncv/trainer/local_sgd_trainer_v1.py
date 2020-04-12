@@ -51,7 +51,6 @@ class LocalSGDTrainerV1(mx.gluon.Trainer):
 
         # communication counter
         self._comm_counter = 0.
-        self._comm_counter_full = 0.
 
     def step(self, batch_size, ignore_stale_grad=False):
         """Makes one step of parameter update. Should be called after
@@ -97,7 +96,6 @@ class LocalSGDTrainerV1(mx.gluon.Trainer):
 
                 # communication counter
                 self._comm_counter += param.list_data()[0].size * 2
-                self._comm_counter_full = self._comm_counter
 
     def allreduce_params(self):
         for i, param in enumerate(self._params):

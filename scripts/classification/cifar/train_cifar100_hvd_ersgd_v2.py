@@ -1,7 +1,9 @@
 import matplotlib
 matplotlib.use('Agg')
 
-import argparse, time, logging, random
+import argparse, time, logging, random, os
+
+os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
 
 import numpy as np
 import mxnet as mx
@@ -19,7 +21,7 @@ from gluoncv.data.sampler import SplitSampler
 
 import horovod.mxnet as hvd
 
-from gluoncv.trainer.ersgd_trainer import ERSGDTrainer
+from gluoncv.trainer.ersgd_trainer_v2 import ERSGDTrainerV2
 
 np.random.seed(100)
 random.seed(100)
@@ -36,7 +38,7 @@ def parse_args():
                         help='number of preprocessing workers')
     parser.add_argument('--num-epochs', type=int, default=200,
                         help='number of training epochs.')
-    parser.add_argument('--optimizer', type=str, default='sgd',
+    parser.add_argument('--optimizer', type=str, default='NAG',
                         help='optimizer')
     parser.add_argument('--lr', type=float, default=0.1,
                         help='learning rate. default is 0.1.')
@@ -62,11 +64,13 @@ def parse_args():
                         help='resume training from the model')
     parser.add_argument('--save-plot-dir', type=str, default='.',
                         help='the path to save the history plot')
-    parser.add_argument('--row-sparse', type=float, default=20.,
-                        help='denominator of the row-sparse ratio')
+    parser.add_argument('--input-sparse', type=float, default=20.,
+                        help='denominator of the input-channel-sparse ratio')
+    parser.add_argument('--output-sparse', type=float, default=20.,
+                        help='denominator of the output-channel-sparse ratio')
     parser.add_argument('--layer-sparse', type=float, default=1.,
                         help='denominator of the layer-sparse ratio')
-    parser.add_argument('--nesterov', action='store_true', help='Turn on Nesterov for optimizer')
+    parser.add_argument('--warmup', action='store_true', help='Turn on learning rate warmup')
     opt = parser.parse_args()
     return opt
 
@@ -149,6 +153,9 @@ def main():
             ctx = [ctx]
         net.initialize(mx.init.Xavier(), ctx=ctx)
 
+        # if opt.print_tensor_shape and rank == 0:
+        #     print(net)
+
         train_dataset = gluon.data.vision.CIFAR100(train=True).transform_first(transform_train)
 
         train_data = gluon.data.DataLoader(
@@ -168,15 +175,13 @@ def main():
 
         hvd.broadcast_parameters(net.collect_params(), root_rank=0)
 
-        trainer = ERSGDTrainer(
+        trainer = ERSGDTrainerV2(
             net.collect_params(),  
-            optimizer, opt.lr,
-            optimizer_params, 
-            row_sparse_ratio=1./opt.row_sparse, 
-            layer_sparse_ratio=1./opt.layer_sparse, 
-            momentum=opt.momentum,
-            wd=opt.wd, 
-            nesterov=opt.nesterov)
+            'NAG', optimizer_params, 
+            input_sparse_ratio=1./opt.input_sparse, 
+            output_sparse_ratio=1./opt.output_sparse, 
+            layer_sparse_ratio=1./opt.layer_sparse,
+            print_tensor_shape=opt.print_tensor_shape)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})
@@ -191,6 +196,13 @@ def main():
 
         best_val_score = 0
 
+        lr = opt.lr
+
+        if opt.warmup:
+            warmup_epochs = max(4, round(opt.input_sparse * opt.output_sparse * opt.layer_sparse * 5. / 128. * opt.lr / 0.05))
+        else:
+            warmup_epochs = 0
+
         for epoch in range(epochs):
             tic = time.time()
             train_metric.reset()
@@ -200,9 +212,12 @@ def main():
             alpha = 1
 
             if epoch == lr_decay_epoch[lr_decay_count]:
-                trainer.set_learning_rate(trainer.learning_rate*lr_decay)
-                trainer._lr *= lr_decay
+                lr *= lr_decay
+                trainer.set_learning_rate(lr)
                 lr_decay_count += 1
+
+            if epoch < warmup_epochs:
+                trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
 
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
@@ -223,9 +238,10 @@ def main():
 
             mx.nd.waitall()
             toc = time.time()
-
+            
             train_loss /= batch_size * num_batch
             name, acc = train_metric.get()
+            # name, val_acc = test(ctx, val_data)
 
             trainer.pre_test()
             name, val_acc = test(ctx, val_data)
@@ -247,11 +263,13 @@ def main():
                 # net.save_parameters('%s/%.4f-cifar-%s-%d-best.params'%(save_dir, best_val_score, model_name, epoch))
 
             if rank == 0:
-                logging.info('[Epoch %d] train=%f val=%f loss=%f time: %f' %
-                    (epoch, acc, val_acc, train_loss, toc-tic))
+                logging.info('[Epoch %d] train=%f val=%f loss=%f comm=%.2f time: %f' %
+                    (epoch, acc, val_acc, train_loss, trainer._comm_counter/1e6, toc-tic))
 
                 if save_period and save_dir and (epoch + 1) % save_period == 0:
                     net.save_parameters('%s/cifar10-%s-%d.params'%(save_dir, model_name, epoch))
+
+            trainer._comm_counter = 0.
 
         if rank == 0:
             if save_period and save_dir:

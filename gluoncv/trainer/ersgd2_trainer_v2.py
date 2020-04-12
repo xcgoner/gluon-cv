@@ -34,13 +34,13 @@ import logging
 import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
 
-class ERSGD2TrainerV1(mx.gluon.Trainer):
-    def __init__(self, params, optimizer='ERSGDV1', optimizer_params=None, 
+class ERSGD2TrainerV2(mx.gluon.Trainer):
+    def __init__(self, params, optimizer='nag', optimizer_params=None, 
                  input_sparse_ratio_1=1, output_sparse_ratio_1=1, layer_sparse_ratio_1=1, 
                  input_sparse_ratio_2=1, output_sparse_ratio_2=1, layer_sparse_ratio_2=1,
                  local_sgd_interval=1):
 
-        super(ERSGD2TrainerV1, self).__init__(
+        super(ERSGD2TrainerV2, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None)
         
         self._update_on_kvstore = False
@@ -61,7 +61,6 @@ class ERSGD2TrainerV1(mx.gluon.Trainer):
 
         # communication counter
         self._comm_counter = 0.
-
 
     def step(self, batch_size, ignore_stale_grad=False):
         """Makes one step of parameter update. Should be called after
@@ -92,9 +91,9 @@ class ERSGD2TrainerV1(mx.gluon.Trainer):
 
         self._update(ignore_stale_grad)
 
-        self._allreduce_grads()
+        self._allreduce_params()
 
-    def _allreduce_grads(self):
+    def _allreduce_params(self):
 
         # local sgd
         self._local_sgd_counter += 1
@@ -112,42 +111,35 @@ class ERSGD2TrainerV1(mx.gluon.Trainer):
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
-                    # ER-SGD
-                    r, _, _ = self._updaters[0].states[i]
+                    # Partial-local-SGD
+                    x = param.list_data()[0]
 
                     if random.uniform(0,1) <= layer_sparse_ratio:
                         # compress
-                        input_size = r.shape[0]
+                        input_size = x.shape[0]
                         k1 = max(1, round(input_size*input_sparse_ratio))
                         sparse_input_begin = random.choice(range(math.ceil(input_size/k1))) * k1
                         sparse_input_end = min(sparse_input_begin + k1, input_size)
-                        if len(r.shape) > 1:
-                            output_size = r.shape[1]
+
+                        if len(x.shape) > 1:
+                            output_size = x.shape[1]
                             k2 = max(1, round(output_size*output_sparse_ratio))
                             sparse_output_begin = random.choice(range(math.ceil(output_size/k2))) * k2
                             sparse_output_end = min(sparse_output_begin + k2, output_size)
-
-                            r_sync = r[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
-                            param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] += r_sync
+                            x_sync = x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
                             # partial sync
-                            allreduce_(r_sync, average=True,
-                                    name=str(i), priority=-i)
-                            
-                            param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= r_sync
-                            r[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
+                            allreduce_(x_sync, average=True,
+                                        name=str(i), priority=-i)
+                            x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = x_sync
                         else:
-
-                            r_sync = r[sparse_input_begin:sparse_input_end]
-                            param.list_data()[0][sparse_input_begin:sparse_input_end] += r_sync
+                            x_sync = x[sparse_input_begin:sparse_input_end]
                             # partial sync
-                            allreduce_(r_sync, average=True,
+                            allreduce_(x_sync, average=True,
                                     name=str(i), priority=-i)
-                            
-                            param.list_data()[0][sparse_input_begin:sparse_input_end] -= r_sync
-                            r[sparse_input_begin:sparse_input_end] = 0
+                            x[sparse_input_begin:sparse_input_end] = x_sync
 
                         # communication counter
-                        self._comm_counter += r_sync.size * 2
+                        self._comm_counter += x_sync.size * 2
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
     

@@ -57,7 +57,6 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
 
         # communication counter
         self._comm_counter = 0.
-        self._comm_counter_full = 0.
 
     def step(self, batch_size, ignore_stale_grad=False):
         """Makes one step of parameter update. Should be called after
@@ -144,7 +143,6 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
 
                         # communication counter
                         self._comm_counter += e_sync.size * 2
-                        self._comm_counter_full += e.size * 2
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 

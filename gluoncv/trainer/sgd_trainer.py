@@ -47,7 +47,6 @@ class SGDTrainer(mx.gluon.Trainer):
 
         # communication counter
         self._comm_counter = 0.
-        self._comm_counter_full = 0.
 
     def _allreduce_grads(self):
 
@@ -58,6 +57,5 @@ class SGDTrainer(mx.gluon.Trainer):
 
                 # communication counter
                 self._comm_counter += param.list_grad()[0].size * 2
-                self._comm_counter_full = self._comm_counter
 
 

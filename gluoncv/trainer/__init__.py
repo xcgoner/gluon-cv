@@ -20,14 +20,14 @@
 # pylint: disable=wildcard-import
 """CV trainer."""
 
-from .ersgd_trainer import ERSGDTrainer
-from .efsgd_trainer import EFSGDTrainer
-
 from .sgd_trainer import SGDTrainer
 
 from .efsgd_trainer_v1 import EFSGDTrainerV1
 from .ersgd_trainer_v1 import ERSGDTrainerV1
 from .ersgd2_trainer_v1 import ERSGD2TrainerV1
+
+from .ersgd_trainer_v2 import ERSGDTrainerV2
+from .ersgd2_trainer_v2 import ERSGD2TrainerV2
 
 from .qsparse_local_sgd_trainer_v1 import QSparseLocalSGDTrainerV1
 from .partial_local_sgd_trainer_v1 import PartialLocalSGDTrainerV1

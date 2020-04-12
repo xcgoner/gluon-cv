@@ -35,7 +35,7 @@ import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
 
 class ERSGDTrainerV1(mx.gluon.Trainer):
-    def __init__(self, params, optimizer='ERSGDV1', optimizer_params=None, input_sparse_ratio=1, output_sparse_ratio=1, layer_sparse_ratio=1, print_tensor_shape=False):
+    def __init__(self, params, optimizer='ERSGDV1', optimizer_params=None, input_sparse_ratio=1, output_sparse_ratio=1, layer_sparse_ratio=1):
 
         super(ERSGDTrainerV1, self).__init__(
             params, optimizer, optimizer_params=optimizer_params, kvstore=None)
@@ -51,10 +51,6 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
 
         # communication counter
         self._comm_counter = 0.
-        self._comm_counter_full = 0.
-
-        # check tensor sizes for debug
-        self._print_tensor_shape = print_tensor_shape
 
     def step(self, batch_size, ignore_stale_grad=False):
         """Makes one step of parameter update. Should be called after
@@ -88,15 +84,6 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
         self._allreduce_grads()
 
     def _allreduce_grads(self):
-
-        if self._print_tensor_shape:
-            if hvd.rank() == 0:
-                for i, param in enumerate(self._params):
-                    if param.grad_req != 'null':
-                        if param.list_grad()[0].stype == 'default':
-                            # print(param.list_data()[0].shape)
-                            print(param)
-            self._print_tensor_shape = False
         
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
@@ -137,7 +124,6 @@ class ERSGDTrainerV1(mx.gluon.Trainer):
 
                         # communication counter
                         self._comm_counter += r_sync.size * 2
-                        self._comm_counter_full += r.size * 2
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
     
