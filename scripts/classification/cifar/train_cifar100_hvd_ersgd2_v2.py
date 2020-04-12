@@ -144,8 +144,7 @@ def main():
         transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])
     ])
 
-    optimizer_params = {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum, 
-                        'nesterov': opt.nesterov, 'version': opt.kernel_version}
+    optimizer_params = {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum}
 
     def test(ctx, val_data):
         metric = mx.metric.Accuracy()
