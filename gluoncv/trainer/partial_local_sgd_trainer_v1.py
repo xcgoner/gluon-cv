@@ -83,12 +83,6 @@ class PartialLocalSGDTrainerV1(mx.gluon.Trainer):
         if self._params_cache_to_init:
             self._init_params_cache()
 
-        if self._local_sgd_counter == 0:
-            # sychronized in last iteraion, cache the current model
-            for i, param in enumerate(self._params):
-                if param.grad_req != 'null':
-                    self._x[i][:] = param.list_data()[0]
-
         self._update(ignore_stale_grad)
 
         # local sgd
