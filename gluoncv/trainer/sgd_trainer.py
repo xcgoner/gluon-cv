@@ -43,7 +43,7 @@ class SGDTrainer(mx.gluon.Trainer):
         
         self._update_on_kvstore = False
 
-        self._scale /= size()
+        # self._scale /= size()
 
         # communication counter
         self._comm_counter = 0.
@@ -53,7 +53,7 @@ class SGDTrainer(mx.gluon.Trainer):
 
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
-                allreduce_(param.list_grad()[0], average=False,
+                allreduce_(param.list_grad()[0], average=True,
                            name=param.name, priority=-i)
 
                 # communication counter
