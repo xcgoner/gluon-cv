@@ -153,9 +153,6 @@ def main():
             ctx = [ctx]
         net.initialize(mx.init.Xavier(), ctx=ctx)
 
-        # if opt.print_tensor_shape and rank == 0:
-        #     print(net)
-
         train_dataset = gluon.data.vision.CIFAR100(train=True).transform_first(transform_train)
 
         train_data = gluon.data.DataLoader(
@@ -180,8 +177,7 @@ def main():
             'NAG', optimizer_params, 
             input_sparse_ratio=1./opt.input_sparse, 
             output_sparse_ratio=1./opt.output_sparse, 
-            layer_sparse_ratio=1./opt.layer_sparse,
-            print_tensor_shape=opt.print_tensor_shape)
+            layer_sparse_ratio=1./opt.layer_sparse)
 
         # trainer = gluon.Trainer(net.collect_params(), optimizer,
                                 # {'learning_rate': opt.lr, 'wd': opt.wd, 'momentum': opt.momentum})
