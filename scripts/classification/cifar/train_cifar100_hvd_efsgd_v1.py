@@ -1,7 +1,9 @@
 import matplotlib
 matplotlib.use('Agg')
 
-import argparse, time, logging, random
+import argparse, time, logging, random, os
+
+os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
 
 import numpy as np
 import mxnet as mx
