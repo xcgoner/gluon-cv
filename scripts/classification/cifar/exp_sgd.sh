@@ -11,7 +11,7 @@ do
             --lr-decay-epoch 60,120,160 --wd 0.0005 --num-epochs 200 --batch-size ${batchsize}
 
             sleep 60
-            bash ~/src/ersgd/pkill_cluster.sh ${HOSTFILE}-0
+            bash /home/ubuntu/src/ersgd/ec2-tools/pkill_cluster.sh ${HOSTFILE}-0
             sleep 60
         done
     done
