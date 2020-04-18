@@ -1,4 +1,4 @@
-import argparse, time, logging, os, math
+import argparse, time, logging, os, math, random
 
 import numpy as np
 import mxnet as mx
@@ -16,6 +16,8 @@ from gluoncv.utils import makedirs, LRSequential, LRScheduler
 import horovod.mxnet as hvd
 from gluoncv.trainer.sgd_trainer import SGDTrainer
 from gluoncv.trainer.local_sgd_trainer_v1 import LocalSGDTrainerV1
+
+os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
 
 np.random.seed(100)
 random.seed(100)
