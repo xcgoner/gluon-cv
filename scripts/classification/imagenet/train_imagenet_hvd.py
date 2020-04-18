@@ -419,7 +419,7 @@ def main():
                 else:
                     n_repeats = 1
 
-                for _ in range(n_repeats):
+                for j in range(n_repeats):
 
                     if opt.mixup:
                         lam = np.random.beta(opt.mixup_alpha, opt.mixup_alpha)
@@ -463,7 +463,7 @@ def main():
                         else:
                             train_metric.update(label, outputs)
 
-                    if opt.log_interval and not (i*n_repeats+1)%opt.log_interval:
+                    if opt.log_interval and not (i*j+1)%opt.log_interval:
                         train_metric_name, train_metric_score = train_metric.get()
                         if hvd.rank() == 0:
                             logger.info('Epoch[%d] Batch [%d]\tSpeed: %f samples/sec\t%s=%f\tlr=%f'%(
