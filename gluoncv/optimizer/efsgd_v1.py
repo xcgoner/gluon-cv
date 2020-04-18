@@ -21,7 +21,8 @@ import warnings
 import numpy
 from mxnet.optimizer import Optimizer, register
 from mxnet.ndarray import zeros, NDArray, full
-from mxnet.ndarray import efsgd_pre_update, mp_efsgd_pre_update
+from mxnet.ndarray import efsgd_pre_update
+# from mxnet.ndarray import efsgd_pre_update, mp_efsgd_pre_update
 
 __all__ = ['EFSGDV1']
 
@@ -39,9 +40,9 @@ class EFSGDV1(Optimizer):
         weight_master_copy = None
         if self.multi_precision and weight.dtype == numpy.float16:
             weight_master_copy = weight.astype(numpy.float32)
-            return (zeros(weight.shape, weight.context, dtype=weight.dtype), # e, remaining error
-                    zeros(weight.shape, weight.context, dtype=weight.dtype), # m, momentum
-                    zeros(weight.shape, weight.context, dtype=weight.dtype), # m_wd, momentum of weight decay
+            return (zeros(weight.shape, weight.context, dtype=numpy.float32), # e, remaining error
+                    zeros(weight.shape, weight.context, dtype=numpy.float32), # m, momentum
+                    zeros(weight.shape, weight.context, dtype=numpy.float32), # m_wd, momentum of weight decay
                     weight_master_copy) # the float32 copy of weight
         if weight.dtype == numpy.float16 and not self.multi_precision:
             warnings.warn("Accumulating with float16 in optimizer can lead to "
@@ -74,8 +75,8 @@ class EFSGDV1(Optimizer):
                         lr=lr, wd=wd, **kwargs)
         else:
             e, m, m_wd, w_32 = state
-            mp_efsgd_pre_update(weight, grad, e, m, m_wd, w_32, out=weight,
-                        lr=lr, wd=wd, **kwargs)
+            # mp_efsgd_pre_update(weight, grad, e, m, m_wd, w_32, out=weight,
+            #             lr=lr, wd=wd, **kwargs)
 
     def update(self, index, weight, grad, state):
         self._update_impl(index, weight, grad, state, multi_precision=False)
