@@ -18,6 +18,7 @@ from gluoncv.trainer.sgd_trainer import SGDTrainer
 from gluoncv.trainer.local_sgd_trainer_v1 import LocalSGDTrainerV1
 
 os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
+# os.environ['MXNET_SAFE_ACCUMULATION'] = '1'
 
 np.random.seed(100)
 random.seed(100)
@@ -120,6 +121,8 @@ def parse_args():
                         help='trainer')
     parser.add_argument('--local-sgd-interval', type=int, default=4,
                         help='interval for model synchronization')
+    parser.add_argument('--test-speed', action='store_true',
+                        help='turn on to use dummy data for speed testing.')
     opt = parser.parse_args()
     return opt
 
@@ -411,55 +414,62 @@ def main():
             for i, batch in enumerate(train_data):
                 data, label = batch_fn(batch, ctx)
 
-                if opt.mixup:
-                    lam = np.random.beta(opt.mixup_alpha, opt.mixup_alpha)
-                    if epoch >= opt.num_epochs - opt.mixup_off_epoch:
-                        lam = 1
-                    data = [lam*X + (1-lam)*X[::-1] for X in data]
-
-                    if opt.label_smoothing:
-                        eta = 0.1
-                    else:
-                        eta = 0.0
-                    label = mixup_transform(label, classes, lam, eta)
-
-                elif opt.label_smoothing:
-                    hard_label = label
-                    label = smooth(label, classes)
-
-                if distillation:
-                    teacher_prob = [nd.softmax(teacher(X.astype(opt.dtype, copy=False)) / opt.temperature) \
-                                    for X in data]
-
-                with ag.record():
-                    outputs = [net(X.astype(opt.dtype, copy=False)) for X in data]
-                    if distillation:
-                        loss = [L(yhat.astype('float32', copy=False),
-                                  y.astype('float32', copy=False),
-                                  p.astype('float32', copy=False)) for yhat, y, p in zip(outputs, label, teacher_prob)]
-                    else:
-                        loss = [L(yhat, y.astype(opt.dtype, copy=False)) for yhat, y in zip(outputs, label)]
-                for l in loss:
-                    l.backward()
-                trainer.step(batch_size)
-
-                if opt.mixup:
-                    output_softmax = [nd.SoftmaxActivation(out.astype('float32', copy=False)) \
-                                    for out in outputs]
-                    train_metric.update(label, output_softmax)
+                if opt.test_speed:
+                    n_repeats = 999999999
                 else:
-                    if opt.label_smoothing:
-                        train_metric.update(hard_label, outputs)
-                    else:
-                        train_metric.update(label, outputs)
+                    n_repeats = 1
 
-                if opt.log_interval and not (i+1)%opt.log_interval:
-                    train_metric_name, train_metric_score = train_metric.get()
-                    if hvd.rank() == 0:
-                        logger.info('Epoch[%d] Batch [%d]\tSpeed: %f samples/sec\t%s=%f\tlr=%f'%(
-                                    epoch, i, batch_size*hvd.size()*opt.log_interval/(time.time()-btic),
-                                    train_metric_name, train_metric_score, trainer.learning_rate))
-                    btic = time.time()
+                for _ in range(n_repeats):
+
+                    if opt.mixup:
+                        lam = np.random.beta(opt.mixup_alpha, opt.mixup_alpha)
+                        if epoch >= opt.num_epochs - opt.mixup_off_epoch:
+                            lam = 1
+                        data = [lam*X + (1-lam)*X[::-1] for X in data]
+
+                        if opt.label_smoothing:
+                            eta = 0.1
+                        else:
+                            eta = 0.0
+                        label = mixup_transform(label, classes, lam, eta)
+
+                    elif opt.label_smoothing:
+                        hard_label = label
+                        label = smooth(label, classes)
+
+                    if distillation:
+                        teacher_prob = [nd.softmax(teacher(X.astype(opt.dtype, copy=False)) / opt.temperature) \
+                                        for X in data]
+
+                    with ag.record():
+                        outputs = [net(X.astype(opt.dtype, copy=False)) for X in data]
+                        if distillation:
+                            loss = [L(yhat.astype('float32', copy=False),
+                                    y.astype('float32', copy=False),
+                                    p.astype('float32', copy=False)) for yhat, y, p in zip(outputs, label, teacher_prob)]
+                        else:
+                            loss = [L(yhat, y.astype(opt.dtype, copy=False)) for yhat, y in zip(outputs, label)]
+                    for l in loss:
+                        l.backward()
+                    trainer.step(batch_size)
+
+                    if opt.mixup:
+                        output_softmax = [nd.SoftmaxActivation(out.astype('float32', copy=False)) \
+                                        for out in outputs]
+                        train_metric.update(label, output_softmax)
+                    else:
+                        if opt.label_smoothing:
+                            train_metric.update(hard_label, outputs)
+                        else:
+                            train_metric.update(label, outputs)
+
+                    if opt.log_interval and not (i+1)%opt.log_interval:
+                        train_metric_name, train_metric_score = train_metric.get()
+                        if hvd.rank() == 0:
+                            logger.info('Epoch[%d] Batch [%d]\tSpeed: %f samples/sec\t%s=%f\tlr=%f'%(
+                                        epoch, i, batch_size*hvd.size()*opt.log_interval/(time.time()-btic),
+                                        train_metric_name, train_metric_score, trainer.learning_rate))
+                        btic = time.time()
 
             train_metric_name, train_metric_score = train_metric.get()
             throughput = int(batch_size * i /(time.time() - tic) * hvd.size())
