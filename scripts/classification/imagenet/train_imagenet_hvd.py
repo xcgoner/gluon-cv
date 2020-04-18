@@ -463,7 +463,7 @@ def main():
                         else:
                             train_metric.update(label, outputs)
 
-                    if opt.log_interval and not (i+j)%opt.log_interval:
+                    if opt.log_interval and not (i+j+1)%opt.log_interval:
                         train_metric_name, train_metric_score = train_metric.get()
                         if hvd.rank() == 0:
                             logger.info('Epoch[%d] Batch [%d]\tSpeed: %f samples/sec\t%s=%f\tlr=%f'%(
