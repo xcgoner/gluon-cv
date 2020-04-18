@@ -471,10 +471,15 @@ def main():
                                         train_metric_name, train_metric_score, trainer.learning_rate))
                         btic = time.time()
 
+            mx.nd.waitall()
+            toc = time.time()
+
             train_metric_name, train_metric_score = train_metric.get()
             throughput = int(batch_size * i /(time.time() - tic) * hvd.size())
 
             err_top1_val, err_top5_val = test(ctx, val_data)
+
+            mx.nd.waitall()
 
             # allreduce the results
             allreduce_array_nd = mx.nd.array([train_metric_score, err_top1_val, err_top5_val])
@@ -486,7 +491,7 @@ def main():
 
             if hvd.rank() == 0:
                 logger.info('[Epoch %d] training: %s=%f'%(epoch, train_metric_name, train_metric_score))
-                logger.info('[Epoch %d] speed: %d samples/sec\ttime cost: %f'%(epoch, throughput, time.time()-tic))
+                logger.info('[Epoch %d] speed: %d samples/sec\ttime cost: %f'%(epoch, throughput, toc-tic))
                 logger.info('[Epoch %d] validation: err-top1=%f err-top5=%f'%(epoch, err_top1_val, err_top5_val))
 
             if err_top1_val < best_val_score:
