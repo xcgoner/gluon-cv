@@ -455,9 +455,10 @@ def main():
 
                 if opt.log_interval and not (i+1)%opt.log_interval:
                     train_metric_name, train_metric_score = train_metric.get()
-                    logger.info('Epoch[%d] Batch [%d]\tSpeed: %f samples/sec\t%s=%f\tlr=%f'%(
-                                epoch, i, batch_size*opt.log_interval/(time.time()-btic),
-                                train_metric_name, train_metric_score, trainer.learning_rate))
+                    if hvd.rank() == 0:
+                        logger.info('Epoch[%d] Batch [%d]\tSpeed: %f samples/sec\t%s=%f\tlr=%f'%(
+                                    epoch, i, batch_size*hvd.size()*opt.log_interval/(time.time()-btic),
+                                    train_metric_name, train_metric_score, trainer.learning_rate))
                     btic = time.time()
 
             train_metric_name, train_metric_score = train_metric.get()
