@@ -420,8 +420,11 @@ def main():
 
             for i, batch in enumerate(train_data):
 
-                if n_repeats > 0:
-                    data, label = batch_fn(batch, ctx)
+                if n_repeats == 0:
+                    print('[Epoch %d] # batch: %d'%(epoch, i))
+                    continue
+
+                data, label = batch_fn(batch, ctx)
 
                 for j in range(n_repeats):
 
@@ -479,7 +482,7 @@ def main():
             toc = time.time()
 
             if n_repeats == 0:
-                logger.info('[Epoch %d] # batch: %d'%(epoch, i))
+                print('[Epoch %d] # batch: %d'%(epoch, i))
                 continue
 
             train_metric_name, train_metric_score = train_metric.get()
