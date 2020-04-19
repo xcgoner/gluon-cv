@@ -482,7 +482,10 @@ def main():
             toc = time.time()
 
             if n_repeats == 0:
-                print('[Epoch %d] # batch: %d'%(epoch, i))
+                allreduce_array_nd = mx.nd.array([i])
+                hvd.allreduce_(allreduce_array_nd, name='allreduce_array', average=True)
+                mx.nd.waitall()
+                print('[Epoch %d] # total batch: %d'%(epoch, i))
                 continue
 
             train_metric_name, train_metric_score = train_metric.get()
