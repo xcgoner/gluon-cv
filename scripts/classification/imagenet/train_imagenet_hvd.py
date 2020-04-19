@@ -121,7 +121,7 @@ def parse_args():
                         help='trainer')
     parser.add_argument('--local-sgd-interval', type=int, default=4,
                         help='interval for model synchronization')
-    parser.add_argument('--test-speed', action='store_true',
+    parser.add_argument('--test-speed', type=int, default=0, 
                         help='turn on to use dummy data for speed testing.')
     opt = parser.parse_args()
     return opt
@@ -411,13 +411,17 @@ def main():
             train_metric.reset()
             btic = time.time()
 
+            print(len(train_data))
+
             for i, batch in enumerate(train_data):
                 data, label = batch_fn(batch, ctx)
 
-                if opt.test_speed:
-                    n_repeats = 999999999
-                else:
+                if opt.test_speed > 0:
+                    n_repeats = opt.test_speed
+                elif opt.test_speed == 0:
                     n_repeats = 1
+                else:
+                    n_repeats = 0
 
                 for j in range(n_repeats):
 
