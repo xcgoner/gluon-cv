@@ -420,7 +420,7 @@ def main():
 
             for i, batch in enumerate(train_data):
 
-                if n_repeats == 0:
+                if n_repeats == 0 and not (i+1)%opt.log_interval:
                     print('[Epoch %d] # batch: %d'%(epoch, i))
                     continue
 
