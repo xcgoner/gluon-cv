@@ -411,15 +411,15 @@ def main():
             train_metric.reset()
             btic = time.time()
 
+            if opt.test_speed > 0:
+                n_repeats = opt.test_speed
+            elif opt.test_speed == 0:
+                n_repeats = 1
+            else:
+                n_repeats = 0
+
             for i, batch in enumerate(train_data):
                 data, label = batch_fn(batch, ctx)
-
-                if opt.test_speed > 0:
-                    n_repeats = opt.test_speed
-                elif opt.test_speed == 0:
-                    n_repeats = 1
-                else:
-                    n_repeats = 0
 
                 for j in range(n_repeats):
 
@@ -477,7 +477,7 @@ def main():
             toc = time.time()
 
             if n_repeats == 0:
-                print('[Epoch %d] # batch: %d'%(epoch, i))
+                logger.info('[Epoch %d] # batch: %d'%(epoch, i))
                 continue
 
             train_metric_name, train_metric_score = train_metric.get()
