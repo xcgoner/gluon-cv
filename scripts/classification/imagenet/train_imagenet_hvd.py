@@ -411,8 +411,6 @@ def main():
             train_metric.reset()
             btic = time.time()
 
-            print(len(train_data))
-
             for i, batch in enumerate(train_data):
                 data, label = batch_fn(batch, ctx)
 
@@ -477,6 +475,10 @@ def main():
 
             mx.nd.waitall()
             toc = time.time()
+
+            if n_repeats == 0:
+                print('[Epoch %d] # batch: %d'%(epoch, i))
+                continue
 
             train_metric_name, train_metric_score = train_metric.get()
             throughput = int(batch_size * i /(time.time() - tic) * hvd.size())
