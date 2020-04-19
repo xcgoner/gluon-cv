@@ -419,7 +419,9 @@ def main():
                 n_repeats = 0
 
             for i, batch in enumerate(train_data):
-                data, label = batch_fn(batch, ctx)
+
+                if n_repeats > 0:
+                    data, label = batch_fn(batch, ctx)
 
                 for j in range(n_repeats):
 
