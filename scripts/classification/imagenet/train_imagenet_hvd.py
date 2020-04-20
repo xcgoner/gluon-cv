@@ -226,7 +226,7 @@ def main():
             preprocess_threads  = num_workers,
             shuffle             = True,
             batch_size          = batch_size,
-
+            round_batch         = False,
             data_shape          = (3, input_size, input_size),
             mean_r              = mean_rgb[0],
             mean_g              = mean_rgb[1],
