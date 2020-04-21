@@ -70,7 +70,7 @@ def parse_args():
                         help='denominator of the output-channel-sparse ratio')
     parser.add_argument('--layer-sparse', type=float, default=1.,
                         help='denominator of the layer-sparse ratio')
-    parser.add_argument('--warmup', action='store_true', help='Turn on learning rate warmup')
+    parser.add_argument('--warmup', type=float, default=1.0, help='Turn on learning rate warmup')
     opt = parser.parse_args()
     return opt
 
@@ -195,7 +195,7 @@ def main():
         lr = opt.lr
 
         if opt.warmup:
-            warmup_epochs = max(4, round(opt.input_sparse * opt.output_sparse * opt.layer_sparse * 5. / 128. * opt.lr / 0.05))
+            warmup_epochs = max(4, round(opt.input_sparse * opt.output_sparse * opt.layer_sparse * 5. / 128. * opt.lr / 0.05 * opt.warmup)) 
         else:
             warmup_epochs = 0
 

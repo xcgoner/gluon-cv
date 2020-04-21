@@ -73,7 +73,7 @@ def parse_args():
     parser.add_argument('--nesterov', action='store_true', help='Turn on Nesterov for optimizer')
     parser.add_argument('--kernel-version', type=int, default=1,
                         help='version of operator kernel')
-    parser.add_argument('--warmup', action='store_true', help='Turn on learning rate warmup')
+    parser.add_argument('--warmup', type=float, default=1.0, help='Turn on learning rate warmup')
     parser.add_argument('--print-tensor-shape', action='store_true', help='Turn on to print layer shapes')
     opt = parser.parse_args()
     return opt
@@ -204,7 +204,7 @@ def main():
         lr = opt.lr
 
         if opt.warmup:
-            warmup_epochs = max(4, round(opt.input_sparse * opt.output_sparse * opt.layer_sparse * 5. / 128. * opt.lr / 0.05))
+            warmup_epochs = max(4, round(opt.input_sparse * opt.output_sparse * opt.layer_sparse * 5. / 128. * opt.lr / 0.05 * opt.warmup)) 
         else:
             warmup_epochs = 0
 
