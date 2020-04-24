@@ -126,7 +126,9 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
                             x[sparse_input_begin:sparse_input_end] = x_sync
                             if self._multi_precision:
                                 states = self._updaters[0].states[i]
+                                print(len(states))
                                 w_32 = states[1]
+                                print(w_32.size)
                                 w_32[sparse_input_begin:sparse_input_end] = x_sync
 
                         # communication counter
