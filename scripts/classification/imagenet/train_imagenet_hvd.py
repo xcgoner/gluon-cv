@@ -164,20 +164,25 @@ def main():
 
     optimizer = opt.optimizer
 
+    if opt.trainer == 'ersgd':
+        warmup_epochs = max(5, round(opt.input_sparse_1 * opt.output_sparse_1 * opt.layer_sparse_1 * 5. / 128. * opt.lr / 0.05 * opt.warmup_epochs))
+    else:
+        warmup_epochs = opt.warmup_epochs
+
     lr_decay = opt.lr_decay
     lr_decay_period = opt.lr_decay_period
     if opt.lr_decay_period > 0:
         lr_decay_epoch = list(range(lr_decay_period, opt.num_epochs, lr_decay_period))
     else:
         lr_decay_epoch = [int(i) for i in opt.lr_decay_epoch.split(',')]
-    lr_decay_epoch = [e - opt.warmup_epochs for e in lr_decay_epoch]
+    lr_decay_epoch = [e - warmup_epochs for e in lr_decay_epoch]
     num_batches = num_training_samples // (batch_size * hvd.size())
 
     lr_scheduler = LRSequential([
         LRScheduler('linear', base_lr=0, target_lr=opt.lr,
-                    nepochs=opt.warmup_epochs, iters_per_epoch=num_batches),
+                    nepochs=warmup_epochs, iters_per_epoch=num_batches),
         LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
-                    nepochs=opt.num_epochs - opt.warmup_epochs,
+                    nepochs=opt.num_epochs - warmup_epochs,
                     iters_per_epoch=num_batches,
                     step_epoch=lr_decay_epoch,
                     step_factor=lr_decay, power=2)
