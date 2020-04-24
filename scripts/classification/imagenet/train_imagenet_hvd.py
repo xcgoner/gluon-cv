@@ -166,6 +166,7 @@ def main():
 
     if opt.trainer == 'ersgd':
         warmup_epochs = max(5, round(opt.input_sparse_1 * opt.output_sparse_1 * opt.layer_sparse_1 * 5. / 128. * opt.lr / 0.05 * opt.warmup_epochs))
+        print('warmup = %d' % warmup_epochs)
     else:
         warmup_epochs = opt.warmup_epochs
 
