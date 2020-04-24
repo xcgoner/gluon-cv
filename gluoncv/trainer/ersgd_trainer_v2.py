@@ -116,22 +116,20 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
                             allreduce_(x_sync, average=True,
                                         name=str(i), priority=-i)
                             x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = x_sync
-                            if self._multi_precision:
-                                states = self._updaters[0].states[i]
-                                print(len(states))
-                                w_32 = states[1]
-                                w_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = x_sync
+                            # if self._multi_precision:
+                            #     states = self._updaters[0].states[i]
+                            #     w_32 = states[1]
+                            #     w_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = x_sync
                         else:
                             x_sync = x[sparse_input_begin:sparse_input_end]
                             # partial sync
                             allreduce_(x_sync, average=True,
                                     name=str(i), priority=-i)
                             x[sparse_input_begin:sparse_input_end] = x_sync
-                            if self._multi_precision:
-                                states = self._updaters[0].states[i]
-                                print(len(states))
-                                w_32 = states[1]
-                                w_32[sparse_input_begin:sparse_input_end] = x_sync
+                            # if self._multi_precision:
+                            #     states = self._updaters[0].states[i]
+                            #     w_32 = states[1]
+                            #     w_32[sparse_input_begin:sparse_input_end] = x_sync
 
                         # communication counter
                         self._comm_counter += x_sync.size * 2
