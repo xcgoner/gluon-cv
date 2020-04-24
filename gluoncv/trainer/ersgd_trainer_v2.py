@@ -49,6 +49,12 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
         self._params_cache_to_init = True
         self._params_cache = []
 
+        # multi-precision
+        if 'multi_precision' in optimizer_params:
+            self._multi_precision = optimizer_params['multi_precision']
+        else:
+            self._multi_precision = False
+
         # communication counter
         self._comm_counter = 0.
 
@@ -108,12 +114,18 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
                             allreduce_(x_sync, average=True,
                                         name=str(i), priority=-i)
                             x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = x_sync
+                            if self._multi_precision:
+                                _, w_32 = self._updaters[0].states[i]
+                                w_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = x_sync
                         else:
                             x_sync = x[sparse_input_begin:sparse_input_end]
                             # partial sync
                             allreduce_(x_sync, average=True,
                                     name=str(i), priority=-i)
                             x[sparse_input_begin:sparse_input_end] = x_sync
+                            if self._multi_precision:
+                                _, w_32 = self._updaters[0].states[i]
+                                w_32[sparse_input_begin:sparse_input_end] = x_sync
 
                         # communication counter
                         self._comm_counter += x_sync.size * 2

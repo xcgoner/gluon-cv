@@ -15,6 +15,7 @@ from gluoncv.utils import makedirs, LRSequential, LRScheduler
 
 import horovod.mxnet as hvd
 from gluoncv.trainer.sgd_trainer import SGDTrainer
+from gluoncv.trainer.ersgd_trainer_v2 import ERSGDTrainerV2
 from gluoncv.trainer.local_sgd_trainer_v1 import LocalSGDTrainerV1
 
 os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
@@ -119,6 +120,18 @@ def parse_args():
                         help='whether to use group norm.')
     parser.add_argument('--trainer', type=str, default='sgd',
                         help='trainer')
+    parser.add_argument('--input-sparse-1', type=float, default=20.,
+                        help='denominator of the input-channel-sparse ratio')
+    parser.add_argument('--output-sparse-1', type=float, default=20.,
+                        help='denominator of the output-channel-sparse ratio')
+    parser.add_argument('--layer-sparse-1', type=float, default=1.,
+                        help='denominator of the layer-sparse ratio')
+    parser.add_argument('--input-sparse-2', type=float, default=20.,
+                        help='denominator of the input-channel-sparse ratio')
+    parser.add_argument('--output-sparse-2', type=float, default=20.,
+                        help='denominator of the output-channel-sparse ratio')
+    parser.add_argument('--layer-sparse-2', type=float, default=1.,
+                        help='denominator of the layer-sparse ratio')
     parser.add_argument('--local-sgd-interval', type=int, default=4,
                         help='interval for model synchronization')
     parser.add_argument('--test-speed', type=int, default=0, 
@@ -382,6 +395,13 @@ def main():
             trainer = SGDTrainer(
                 net.collect_params(),  
                 optimizer, optimizer_params)
+        elif opt.trainer == 'ersgd':
+            trainer = ERSGDTrainerV2(
+                net.collect_params(),  
+                optimizer, optimizer_params, 
+                input_sparse_ratio=1./opt.input_sparse_1, 
+                output_sparse_ratio=1./opt.output_sparse_1, 
+                layer_sparse_ratio=1./opt.layer_sparse_1)
         else:
             trainer = LocalSGDTrainerV1(
                 net.collect_params(),  
@@ -491,7 +511,11 @@ def main():
             train_metric_name, train_metric_score = train_metric.get()
             throughput = int(batch_size * i /(time.time() - tic) * hvd.size())
 
+            if opt.trainer == 'ersgd':
+                trainer.pre_test()
             err_top1_val, err_top5_val = test(ctx, val_data)
+            if opt.trainer == 'ersgd':
+                trainer.post_test()
 
             mx.nd.waitall()
 
