@@ -97,6 +97,8 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
                     # Partial-local-SGD
                     x = param.list_data()[0]
 
+                    print(x.dtype)
+
                     if random.uniform(0,1) <= self._layer_sparse_ratio:
                         # compress
                         input_size = x.shape[0]
