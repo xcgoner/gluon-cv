@@ -30,7 +30,7 @@ for repeat in 1; do
     for inputsparse1 in 32; do
         for outputsparse1 in 2 4 8 16 32; do
             for inputsparse2 in 1 2; do
-                for lr in 0.05 0.1; do
+                for lr in 0.1; do
                     for batchsize in 16; do
                         let localsgdinterval=inputsparse1*outputsparse1*layersparse1/inputsparse2
                         horovodrun -np 8 -hostfile ${HOSTFILE} python3 train_cifar100_hvd_ersgd2_v2.py \
