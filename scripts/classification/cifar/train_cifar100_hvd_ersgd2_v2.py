@@ -237,9 +237,6 @@ def main():
                 else:
                     trainer.set_learning_rate(lr)
 
-                # cosine lr
-                trainer.set_learning_rate(trainer.learning_rate * math.cos(math.pi * 0.6 / 2 * trainer._local_sgd_counter / opt.local_sgd_interval))
-
                 with ag.record():
                     output = [net(X) for X in data]
                     loss = [loss_fn(yhat, y) for yhat, y in zip(output, label)]
