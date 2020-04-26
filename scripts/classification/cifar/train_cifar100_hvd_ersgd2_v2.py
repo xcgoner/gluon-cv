@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 
-import argparse, time, logging, random, os
+import argparse, time, logging, random, os, math
 
 os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
 
@@ -227,12 +227,16 @@ def main():
                 trainer.set_learning_rate(lr)
                 lr_decay_count += 1
 
-            if epoch < warmup_epochs:
-                trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
-
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
                 label = gluon.utils.split_and_load(batch[1], ctx_list=ctx, batch_axis=0)
+
+                # warmup
+                if epoch < warmup_epochs:
+                    trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
+
+                # cosine lr
+                trainer.set_learning_rate(trainer.learning_rate * math.cos(math.pi / 2 * trainer._local_sgd_counter / opt.local_sgd_interval))
 
                 with ag.record():
                     output = [net(X) for X in data]
