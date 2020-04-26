@@ -237,8 +237,8 @@ def main():
                 else:
                     trainer.set_learning_rate(lr)
 
-                # # cosine lr
-                # trainer.set_learning_rate(trainer.learning_rate * 2 * math.cos(math.pi * 0.99 / 2 * trainer._local_sgd_counter / opt.local_sgd_interval))
+                # cosine lr
+                trainer.set_learning_rate(trainer.learning_rate * 2 * math.cos(math.pi * 0.99 / 2 * trainer._local_sgd_counter / opt.local_sgd_interval))
 
                 with ag.record():
                     output = [net(X) for X in data]
