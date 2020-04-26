@@ -236,7 +236,7 @@ def main():
                     trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
 
                 # cosine lr
-                trainer.set_learning_rate(trainer.learning_rate * math.cos(math.pi / 2 * trainer._local_sgd_counter / opt.local_sgd_interval))
+                trainer.set_learning_rate(trainer.learning_rate * math.cos(math.pi * 0.5 / 2 * trainer._local_sgd_counter / opt.local_sgd_interval))
 
                 with ag.record():
                     output = [net(X) for X in data]
