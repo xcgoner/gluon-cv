@@ -234,7 +234,7 @@ def main():
                 trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
                 lr_changed = True
 
-            if lr_changed and epoch > 0:
+            if epoch > 0:
                 trainer.allreduce_states()
 
             for i, batch in enumerate(train_data):
