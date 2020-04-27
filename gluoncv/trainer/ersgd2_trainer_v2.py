@@ -30,6 +30,7 @@ import warnings
 import math
 import random
 import logging
+import numpy as np
 
 import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
@@ -155,6 +156,24 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
                         self._comm_counter += x_sync.size * 2
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
+    
+    def allreduce_states(self):
+        n_params = len(self._params)
+        for i, param in enumerate(self._params):
+            if param.grad_req != 'null':
+                if param.list_grad()[0].stype == 'default':
+                    # Partial-local-SGD
+                    x = param.list_data()[0]
+
+                    if self._multi_precision and x.dtype == np.float16:
+                        m, x_32 = self._updaters[0].states[i]
+                        allreduce_(x_32, average=True, name=str(i), priority=-i)
+                        allreduce_(m, average=True, name=str(i+n_params), priority=-i)
+                        x[:] = x_32
+                    else:
+                        m = self._updaters[0].states[i]
+                        allreduce_(x, average=True, name=str(i), priority=-i)
+                        allreduce_(m, average=True, name=str(i+n_params), priority=-i)
     
     def _init_params_cache(self):
         if self._params_cache == []:

@@ -30,6 +30,7 @@ import warnings
 import math
 import random
 import logging
+import numpy as np
 
 import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
@@ -54,6 +55,12 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
         self._states_to_init = True
         self._e = []
         self._x = []
+
+        # multi-precision
+        if 'multi_precision' in optimizer_params:
+            self._multi_precision = optimizer_params['multi_precision']
+        else:
+            self._multi_precision = False
 
         # communication counter
         self._comm_counter = 0.
@@ -115,6 +122,9 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
                     e[:] -= x
                     param.list_data()[0][:] = x
 
+                    if self._multi_precision and x.dtype == np.float16:
+                        _, x_32 = self._updaters[0].states[i]
+
                     if random.uniform(0,1) <= self._layer_sparse_ratio:
                         # compress
                         input_size = e.shape[0]
@@ -133,6 +143,9 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
                                         name=str(i), priority=-i)
                             param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] += e_sync
                             e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
+                            if self._multi_precision and x.dtype == np.float16:
+                                x_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] \
+                                    = param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
                         else:
                             e_sync = e[sparse_input_begin:sparse_input_end]
                             # partial sync
@@ -140,6 +153,8 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
                                     name=str(i), priority=-i)
                             param.list_data()[0][sparse_input_begin:sparse_input_end] += e_sync
                             e[sparse_input_begin:sparse_input_end] = 0
+                            if self._multi_precision and x.dtype == np.float16:
+                                x_32[sparse_input_begin:sparse_input_end] = param.list_data()[0][sparse_input_begin:sparse_input_end]
 
                         # communication counter
                         self._comm_counter += e_sync.size * 2

@@ -221,21 +221,25 @@ def main():
             train_loss = 0
             num_batch = len(train_data)
             alpha = 1
+            lr_changed = False
 
             if epoch == lr_decay_epoch[lr_decay_count]:
                 lr *= lr_decay
                 trainer.set_learning_rate(lr)
                 lr_decay_count += 1
+                lr_changed = True
+            
+            # warmup
+            if epoch < warmup_epochs:
+                trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
+                lr_changed = True
+
+            if lr_changed and epoch > 0:
+                trainer.allreduce_states()
 
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
                 label = gluon.utils.split_and_load(batch[1], ctx_list=ctx, batch_axis=0)
-
-                # warmup
-                if epoch < warmup_epochs:
-                    trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
-                else:
-                    trainer.set_learning_rate(lr)
 
                 with ag.record():
                     output = [net(X) for X in data]

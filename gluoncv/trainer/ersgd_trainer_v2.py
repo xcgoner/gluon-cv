@@ -137,7 +137,7 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
     
     def _init_params_cache(self):
         if self._params_cache == []:
-            # initialize the states
+            # initialize the cached params
             for i, param in enumerate(self._params):
                 if param.grad_req != 'null':
                     self._params_cache.append(zeros_like(param.list_data()[0]))

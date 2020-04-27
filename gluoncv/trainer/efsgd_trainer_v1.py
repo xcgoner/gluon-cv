@@ -30,6 +30,7 @@ import warnings
 import math
 import random
 import logging
+import numpy as np
 
 import horovod.mxnet as hvd
 from horovod.mxnet.mpi_ops import allreduce, allreduce_
@@ -83,7 +84,12 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # EF-SGD
-                    e, _, _ = self._updaters[0].states[i]
+                    x = param.list_data()[0]
+
+                    if self._multi_precision and x.dtype == np.float16:
+                        e, _, _, x_32 = self._updaters[0].states[i]
+                    else:
+                        e, _, _ = self._updaters[0].states[i]
 
                     if random.uniform(0,1) <= self._layer_sparse_ratio:
                         # compress
@@ -101,15 +107,20 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                             # partial sync
                             allreduce_(e_sync, average=True,
                                         name=str(i), priority=-i)
-                            param.list_data()[0][sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= e_sync
+                            x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= e_sync
                             e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
+                            if self._multi_precision and x.dtype == np.float16:
+                                x_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] \
+                                    = x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
                         else:
                             e_sync = e[sparse_input_begin:sparse_input_end]
                             # partial sync
                             allreduce_(e_sync, average=True,
                                     name=str(i), priority=-i)
-                            param.list_data()[0][sparse_input_begin:sparse_input_end] -= e_sync
+                            x[sparse_input_begin:sparse_input_end] -= e_sync
                             e[sparse_input_begin:sparse_input_end] = 0
+                            if self._multi_precision and x.dtype == np.float16:
+                                x_32[sparse_input_begin:sparse_input_end] = x[sparse_input_begin:sparse_input_end]
 
                         # communication counter
                         self._comm_counter += e_sync.size * 2
