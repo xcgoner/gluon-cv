@@ -233,6 +233,7 @@ def main():
 
             if epoch >= lr_decay_epoch[-1]:
                 trainer._sync_states = True
+            trainer._sync_states = True
 
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
