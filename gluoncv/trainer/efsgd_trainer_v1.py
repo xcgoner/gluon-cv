@@ -48,6 +48,12 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
         self._output_sparse_ratio = output_sparse_ratio
         self._layer_sparse_ratio = layer_sparse_ratio
 
+        # multi-precision
+        if 'multi_precision' in optimizer_params:
+            self._multi_precision = optimizer_params['multi_precision']
+        else:
+            self._multi_precision = False
+
         # communication counter
         self._comm_counter = 0.
 
