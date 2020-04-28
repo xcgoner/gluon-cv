@@ -56,6 +56,7 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
 
         self._local_sgd_interval = local_sgd_interval
         self._local_sgd_counter = 0
+        self._sync_states = False
 
         self._params_cache_to_init = True
         self._params_cache = []
@@ -114,6 +115,8 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
             input_sparse_ratio = self._input_sparse_ratio_1
             output_sparse_ratio = self._output_sparse_ratio_1
             layer_sparse_ratio = self._layer_sparse_ratio_1
+
+        n_params = len(self._params)
         
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
@@ -122,7 +125,9 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
                     x = param.list_data()[0]
 
                     if self._multi_precision and x.dtype == np.float16:
-                        _, x_32 = self._updaters[0].states[i]
+                        m, x_32 = self._updaters[0].states[i]
+                    else:
+                        m = self._updaters[0].states[i]
 
                     if random.uniform(0,1) <= layer_sparse_ratio:
                         # compress
@@ -143,6 +148,11 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
                             x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = x_sync
                             if self._multi_precision and x.dtype == np.float16:
                                 x_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = x_sync
+                            if self._sync_states:
+                                m_sync = m[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
+                                allreduce_(m_sync, average=True,
+                                            name=str(i+n_params), priority=-i)
+                                m[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = m_sync
                         else:
                             x_sync = x[sparse_input_begin:sparse_input_end]
                             # partial sync
@@ -151,9 +161,20 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
                             x[sparse_input_begin:sparse_input_end] = x_sync
                             if self._multi_precision and x.dtype == np.float16:
                                 x_32[sparse_input_begin:sparse_input_end] = x_sync
+                            if self._sync_states:
+                                m_sync = m[sparse_input_begin:sparse_input_end]
+                                allreduce_(m_sync, average=True,
+                                            name=str(i+n_params), priority=-i)
+                                m[sparse_input_begin:sparse_input_end] = m_sync
 
                         # communication counter
-                        self._comm_counter += x_sync.size * 2
+                        if x.dtype == np.float16:
+                            sync_factor = 0.5
+                        else:
+                            sync_factor = 1.0
+                        self._comm_counter += x_sync.size * 2 * sync_factor
+                        if self._sync_states:
+                            self._comm_counter += m_sync.size * 2
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
     

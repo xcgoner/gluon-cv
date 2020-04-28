@@ -130,8 +130,11 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
                             if self._multi_precision and x.dtype == np.float16:
                                 x_32[sparse_input_begin:sparse_input_end] = x_sync
 
-                        # communication counter
-                        self._comm_counter += x_sync.size * 2
+                        if x.dtype == np.float16:
+                            sync_factor = 0.5
+                        else:
+                            sync_factor = 1.0
+                        self._comm_counter += x_sync.size * 2 * sync_factor
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
     

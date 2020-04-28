@@ -5,8 +5,8 @@ for repeat in 1; do
     inputsparse1=32
     outputsparse1=8
     layersparse1=1
-    inputsparse2=2
-    for warmup in 3.0 6.0 9.0 12.0; do
+    inputsparse2=4
+    for warmup in 3.0 4.0 2.0; do
         for lr in 0.1; do
             for batchsize in 16; do
                 let localsgdinterval=inputsparse1*outputsparse1*layersparse1/inputsparse2
