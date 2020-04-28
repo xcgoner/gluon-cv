@@ -232,7 +232,8 @@ def main():
                 trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
 
             if epoch >= lr_decay_epoch[-2]:
-                trainer._sync_states = True
+                # trainer._sync_states = True
+                trainer.allreduce_states()
 
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
