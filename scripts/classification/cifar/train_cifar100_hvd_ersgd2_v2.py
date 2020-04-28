@@ -233,7 +233,8 @@ def main():
 
             if epoch >= lr_decay_epoch[-2]:
                 # trainer._sync_states = True
-                trainer.allreduce_states()
+                # trainer.allreduce_states()
+                trainer._input_sparse_ratio_2 = 2./opt.input_sparse_2
 
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
