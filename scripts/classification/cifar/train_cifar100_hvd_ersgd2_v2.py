@@ -226,15 +226,15 @@ def main():
                 lr *= lr_decay
                 trainer.set_learning_rate(lr)
                 lr_decay_count += 1
+                trainer.allreduce_states()
             
             # warmup
             if epoch < warmup_epochs:
                 trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
 
             if epoch >= lr_decay_epoch[-2]:
-                # trainer._sync_states = True
-                trainer.allreduce_states()
-                trainer._input_sparse_ratio_2 = 2./opt.input_sparse_2
+                trainer._sync_states = True
+                # trainer._input_sparse_ratio_2 = 2./opt.input_sparse_2
 
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
