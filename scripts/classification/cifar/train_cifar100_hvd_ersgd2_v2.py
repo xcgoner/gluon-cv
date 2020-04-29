@@ -233,7 +233,7 @@ def main():
 
             if epoch >= lr_decay_epoch[-2]:
                 # trainer._sync_states = True
-                # trainer.allreduce_states()
+                trainer.allreduce_states()
                 trainer._input_sparse_ratio_2 = 2./opt.input_sparse_2
 
             for i, batch in enumerate(train_data):

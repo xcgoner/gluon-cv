@@ -7,7 +7,7 @@ for repeat in 1; do
     layersparse1=1
     for warmup in 3.0; do
         for lr in 0.1; do
-            for inputsparse2 in 32 16 8 4; do
+            for inputsparse2 in 16 8 4; do
                 let localsgdinterval=inputsparse1*outputsparse1*layersparse1/inputsparse2
                 horovodrun -np 8 -hostfile ${HOSTFILE} python3 train_cifar100_hvd_ersgd2_v2.py \
                 --model cifar_wideresnet40_8 --optimizer nag --lr ${lr} --lr-decay 0.2 \
