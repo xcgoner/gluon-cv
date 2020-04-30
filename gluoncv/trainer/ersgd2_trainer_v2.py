@@ -184,16 +184,16 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # Partial-local-SGD
-                    x = param.list_data()[0]
+                    # x = param.list_data()[0]
 
                     if self._multi_precision and x.dtype == np.float16:
-                        m, x_32 = self._updaters[0].states[i]
-                        allreduce_(x_32, average=True, name=str(i), priority=-i)
+                        m, _ = self._updaters[0].states[i]
+                        # allreduce_(x_32, average=True, name=str(i), priority=-i)
                         allreduce_(m, average=True, name=str(i+n_params), priority=-i)
-                        x[:] = x_32
+                        # x[:] = x_32
                     else:
                         m = self._updaters[0].states[i]
-                        allreduce_(x, average=True, name=str(i), priority=-i)
+                        # allreduce_(x, average=True, name=str(i), priority=-i)
                         allreduce_(m, average=True, name=str(i+n_params), priority=-i)
     
     def _init_params_cache(self):
@@ -209,12 +209,19 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
     def pre_test(self):
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
-                self._params_cache[i][:] = param.list_data()[0]
-                hvd.allreduce_(param.list_data()[0], average=True, 
-                                       name=str(i), priority=-i)
+                # self._params_cache[i][:] = param.list_data()[0]
+                # hvd.allreduce_(param.list_data()[0], average=True, 
+                #                        name=str(i), priority=-i)
+                x = param.list_data()[0]
+                allreduce_(x, average=True, name=str(i), priority=-i)
+                if self._multi_precision and x.dtype == np.float16:
+                    _, x_32 = self._updaters[0].states[i]
+                    x_32[:] = x
+                    
     def post_test(self):
-        for i, param in enumerate(self._params):
-            if param.grad_req != 'null':
-                param.list_data()[0][:] = self._params_cache[i]
+        # for i, param in enumerate(self._params):
+        #     if param.grad_req != 'null':
+        #         param.list_data()[0][:] = self._params_cache[i]
+        pass
 
 
