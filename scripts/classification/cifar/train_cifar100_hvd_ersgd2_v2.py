@@ -232,8 +232,7 @@ def main():
             if epoch < warmup_epochs:
                 trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
 
-            # if epoch >= lr_decay_epoch[-2]:
-            if epoch >= 10:
+            if epoch >= lr_decay_epoch[-2]:
                 trainer._sync_states = True
                 # trainer._input_sparse_ratio_2 = 2./opt.input_sparse_2
 
