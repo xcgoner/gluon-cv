@@ -148,7 +148,7 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
                             x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = x_sync
                             if self._multi_precision and x.dtype == np.float16:
                                 x_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = x_sync
-                            if self._sync_states:
+                            if self._sync_states and self._local_sgd_counter == 0:
                                 m_sync = m[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
                                 allreduce_(m_sync, average=True,
                                             name=str(i+n_params), priority=-i)
@@ -161,7 +161,7 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
                             x[sparse_input_begin:sparse_input_end] = x_sync
                             if self._multi_precision and x.dtype == np.float16:
                                 x_32[sparse_input_begin:sparse_input_end] = x_sync
-                            if self._sync_states:
+                            if self._sync_states and self._local_sgd_counter == 0:
                                 m_sync = m[sparse_input_begin:sparse_input_end]
                                 allreduce_(m_sync, average=True,
                                             name=str(i+n_params), priority=-i)
