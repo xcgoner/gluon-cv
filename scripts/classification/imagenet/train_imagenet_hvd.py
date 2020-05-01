@@ -540,9 +540,9 @@ def main():
 
             if err_top1_val < best_val_score:
                 best_val_score = err_top1_val
-                if hvd.local_rank() == 0:
-                    net.save_parameters('%s/%.4f-imagenet-%s-%d-best.params'%(save_dir, best_val_score, model_name, epoch))
-                    trainer.save_states('%s/%.4f-imagenet-%s-%d-best.states'%(save_dir, best_val_score, model_name, epoch))
+                # if hvd.local_rank() == 0:
+                #     net.save_parameters('%s/%.4f-imagenet-%s-%d-best.params'%(save_dir, best_val_score, model_name, epoch))
+                #     trainer.save_states('%s/%.4f-imagenet-%s-%d-best.states'%(save_dir, best_val_score, model_name, epoch))
 
             if save_frequency and save_dir and (epoch + 1) % save_frequency == 0:
                 if hvd.local_rank() == 0:
