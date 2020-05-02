@@ -173,8 +173,8 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
                         else:
                             sync_factor = 1.0
                         self._comm_counter += x_sync.size * 2 * sync_factor
-                        if self._sync_states and self._local_sgd_counter == 0:
-                            self._comm_counter += m_sync.size * 2
+                        # if self._sync_states and self._local_sgd_counter == 0:
+                        #     self._comm_counter += m_sync.size * 2
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
     
