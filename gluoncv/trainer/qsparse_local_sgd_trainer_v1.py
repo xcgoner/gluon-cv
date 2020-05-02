@@ -156,11 +156,11 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
                             if self._multi_precision and x.dtype == np.float16:
                                 x_32[sparse_input_begin:sparse_input_end] = param.list_data()[0][sparse_input_begin:sparse_input_end]
 
-                        if x.dtype == np.float16:
+                        if e.dtype == np.float16:
                             sync_factor = 0.5
                         else:
                             sync_factor = 1.0
-                        self._comm_counter += x_sync.size * 2 * sync_factor
+                        self._comm_counter += e_sync.size * 2 * sync_factor
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
