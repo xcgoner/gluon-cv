@@ -3,9 +3,9 @@ HOSTFILE=$1
 
 for repeat in 1
 do
-    for inputsparse in 2 4 8 16 32
+    for inputsparse in 1 4 16
     do
-        for H in 4 8
+        for H in 2 4 8 
         do
             for lr in 0.05 0.1
             do
@@ -29,7 +29,7 @@ for repeat in 1
 do
     for inputsparse in 32
     do
-        for H in 4 8
+        for H in 2 4 8
         do
             for lr in 0.05 0.1
             do
