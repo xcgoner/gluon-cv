@@ -79,7 +79,7 @@ def parse_args():
     parser.add_argument('--local-sgd-interval', type=int, default=4,
                         help='interval for model synchronization')
     parser.add_argument('--warmup', type=float, default=1.0, help='Turn on learning rate warmup')
-    parser.add_argument('--sync-stats', action='store_true', help='Turn on to sync states')
+    parser.add_argument('--sync-states', action='store_true', help='Turn on to sync states')
     opt = parser.parse_args()
     return opt
 
