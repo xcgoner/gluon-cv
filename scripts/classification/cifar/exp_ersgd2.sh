@@ -13,7 +13,7 @@ for repeat in 1; do
                         --lr-decay-epoch 60,120,160 --wd 0.0005 --num-epochs 200 --batch-size ${batchsize} \
                         --input-sparse-1 ${inputsparse1} --output-sparse-1 ${outputsparse1} --layer-sparse-1 1 \
                         --input-sparse-2 ${inputsparse2} --output-sparse-2 1 --layer-sparse-2 1 \
-                        --local-sgd-interval ${localsgdinterval} --warmup 3.0
+                        --local-sgd-interval ${localsgdinterval} --warmup 2.0
 
                         sleep 60
                         bash /home/ubuntu/src/ersgd/ec2-tools/pkill_cluster.sh ${HOSTFILE}-0
@@ -37,7 +37,7 @@ for repeat in 1; do
                         --lr-decay-epoch 60,120,160 --wd 0.0005 --num-epochs 200 --batch-size ${batchsize} \
                         --input-sparse-1 ${inputsparse1} --output-sparse-1 ${outputsparse1} --layer-sparse-1 1 \
                         --input-sparse-2 ${inputsparse2} --output-sparse-2 1 --layer-sparse-2 1 \
-                        --local-sgd-interval ${localsgdinterval} --warmup 3.0
+                        --local-sgd-interval ${localsgdinterval} --warmup 2.0
 
                         sleep 60
                         bash /home/ubuntu/src/ersgd/ec2-tools/pkill_cluster.sh ${HOSTFILE}-0
@@ -61,7 +61,7 @@ for repeat in 1; do
                         --lr-decay-epoch 60,120,160 --wd 0.0005 --num-epochs 200 --batch-size ${batchsize} \
                         --input-sparse-1 ${inputsparse1} --output-sparse-1 ${outputsparse1} --layer-sparse-1 1 \
                         --input-sparse-2 ${inputsparse2} --output-sparse-2 1 --layer-sparse-2 1 \
-                        --local-sgd-interval ${localsgdinterval} --warmup 3.0
+                        --local-sgd-interval ${localsgdinterval} --warmup 1.0
 
                         sleep 60
                         bash /home/ubuntu/src/ersgd/ec2-tools/pkill_cluster.sh ${HOSTFILE}-0
@@ -87,7 +87,7 @@ for repeat in 5; do
                         --lr-decay-epoch 60,120,160 --wd 0.0005 --num-epochs 200 --batch-size ${batchsize} \
                         --input-sparse-1 ${inputsparse1} --output-sparse-1 ${outputsparse1} --layer-sparse-1 1 \
                         --input-sparse-2 ${inputsparse2} --output-sparse-2 1 --layer-sparse-2 1 \
-                        --local-sgd-interval ${localsgdinterval} --warmup 3.0
+                        --local-sgd-interval ${localsgdinterval} --warmup 3.0 --sync-states
 
                         sleep 60
                         bash /home/ubuntu/src/ersgd/ec2-tools/pkill_cluster.sh ${HOSTFILE}-0
@@ -112,7 +112,7 @@ for repeat in 5; do
                         --lr-decay-epoch 60,120,160 --wd 0.0005 --num-epochs 200 --batch-size ${batchsize} \
                         --input-sparse-1 ${inputsparse1} --output-sparse-1 ${outputsparse1} --layer-sparse-1 ${layersparse1} \
                         --input-sparse-2 ${inputsparse2} --output-sparse-2 1 --layer-sparse-2 1 \
-                        --local-sgd-interval ${localsgdinterval} --warmup 3.0
+                        --local-sgd-interval ${localsgdinterval} --warmup 3.0 --sync-states
 
                         sleep 60
                         bash /home/ubuntu/src/ersgd/ec2-tools/pkill_cluster.sh ${HOSTFILE}-0

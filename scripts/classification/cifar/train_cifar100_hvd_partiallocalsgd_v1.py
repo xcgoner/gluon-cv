@@ -74,7 +74,7 @@ def parse_args():
                         help='version of operator kernel')
     parser.add_argument('--local-sgd-interval', type=int, default=4,
                         help='interval for model synchronization')
-    parser.add_argument('--warmup', action='store_true', help='Turn on learning rate warmup')
+    parser.add_argument('--warmup', type=float, default=1.0, help='Turn on learning rate warmup')
     opt = parser.parse_args()
     return opt
 
@@ -203,7 +203,7 @@ def main():
         lr = opt.lr
 
         if opt.warmup:
-            warmup_epochs = max(4, round(opt.input_sparse * opt.output_sparse * opt.layer_sparse * opt.local_sgd_interval * 5. / 128. * opt.lr / 0.05))
+            warmup_epochs = max(4, round(opt.input_sparse * opt.output_sparse * opt.layer_sparse * opt.local_sgd_interval * 5. / 128. * opt.lr / 0.05 * opt.warmup)) 
         else:
             warmup_epochs = 0
 
