@@ -37,7 +37,7 @@ do
         do
             for outputsparse in 1
             do
-                for lr in 0.5 0.1
+                for lr in 0.05 0.1
                 do
                     for batchsize in 16
                     do
@@ -65,7 +65,7 @@ do
         do
             for outputsparse in 1
             do
-                for lr in 0.5 0.1
+                for lr in 0.05 0.1
                 do
                     for batchsize in 16
                     do
