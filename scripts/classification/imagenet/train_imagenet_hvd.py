@@ -504,9 +504,9 @@ def main():
                     if opt.log_interval and not (i+j+1)%opt.log_interval:
                         train_metric_name, train_metric_score = train_metric.get()
                         if hvd.rank() == 0:
-                            logger.info('Epoch[%d] Batch [%d]\tSpeed: %f samples/sec\t%s=%f\tlr=%f'%(
+                            logger.info('Epoch[%d] Batch [%d]\tSpeed: %f samples/sec\t%s=%f\tlr=%f\tcomm=%f'%(
                                         epoch, i, batch_size*hvd.size()*opt.log_interval/(time.time()-btic),
-                                        train_metric_name, train_metric_score, trainer.learning_rate))
+                                        train_metric_name, train_metric_score, trainer.learning_rate, trainer._comm_counter/1e8))
                         btic = time.time()
 
             mx.nd.waitall()
@@ -543,8 +543,9 @@ def main():
             if hvd.rank() == 0:
                 # logger.info('[Epoch %d] training: %s=%f'%(epoch, train_metric_name, train_metric_score))
                 logger.info('[Epoch %d] training: err-top1=%f err-top5=%f'%(epoch, err_top1_train, err_top5_train))
-                logger.info('[Epoch %d] speed: %d samples/sec\ttime cost: %f'%(epoch, throughput, toc-tic))
+                logger.info('[Epoch %d] speed: %d samples/sec\ttime cost: %f\tcomm: %f'%(epoch, throughput, toc-tic, trainer._comm_counter/1e8))
                 logger.info('[Epoch %d] validation: err-top1=%f err-top5=%f'%(epoch, err_top1_val, err_top5_val))
+                trainer._comm_counter = 0
 
             if err_top1_val < best_val_score:
                 best_val_score = err_top1_val
