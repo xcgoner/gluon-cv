@@ -525,8 +525,11 @@ def main():
 
             if opt.trainer == 'ersgd':
                 trainer.pre_test()
+            err_train_tic = time.time()
             err_top1_train, err_top5_train = test(ctx, train_data, val=False)
+            err_train_toc = time.time()
             err_top1_val, err_top5_val = test(ctx, val_data, val=True)
+            err_val_toc = time.time()
             if opt.trainer == 'ersgd':
                 trainer.post_test()
 
@@ -543,9 +546,9 @@ def main():
 
             if hvd.rank() == 0:
                 # logger.info('[Epoch %d] training: %s=%f'%(epoch, train_metric_name, train_metric_score))
-                logger.info('[Epoch %d] training: err-top1=%f err-top5=%f'%(epoch, err_top1_train, err_top5_train))
-                logger.info('[Epoch %d] speed: %d samples/sec time: %f comm: %f'%(epoch, throughput, toc-tic, trainer._comm_counter/1e6))
-                logger.info('[Epoch %d] validation: err-top1=%f err-top5=%f'%(epoch, err_top1_val, err_top5_val))
+                logger.info('[Epoch %d] training: err-top1=%f err-top5=%f err-time=%f'%(epoch, err_top1_train, err_top5_train, err_train_toc-err_train_tic))
+                logger.info('[Epoch %d] speed: %d samples/sec training-time: %f comm: %f'%(epoch, throughput, toc-tic, trainer._comm_counter/1e6))
+                logger.info('[Epoch %d] validation: err-top1=%f err-top5=%f err-time=%f'%(epoch, err_top1_val, err_top5_val, err_val_toc - err_train_toc))
                 trainer._comm_counter = 0
 
             if err_top1_val < best_val_score:
