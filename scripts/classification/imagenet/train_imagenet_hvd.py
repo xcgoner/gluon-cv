@@ -363,9 +363,12 @@ def main():
             smoothed.append(res)
         return smoothed
 
-    def test(ctx, val_data):
+    def test(ctx, val_data, val=True):
         if opt.use_rec:
-            val_data.reset()
+            if val:
+                val_data.reset()
+            else:
+                train_data.reset()
         acc_top1.reset()
         acc_top5.reset()
         for i, batch in enumerate(val_data):
@@ -437,6 +440,7 @@ def main():
             train_metric.reset()
             btic = time.time()
 
+            # test speed
             if opt.test_speed > 0:
                 n_repeats = opt.test_speed
             elif opt.test_speed == 0:
@@ -445,7 +449,8 @@ def main():
                 n_repeats = 0
 
             for i, batch in enumerate(train_data):
-
+                
+                # test speed
                 if n_repeats == 0 and not (i+1)%opt.log_interval:
                     print('[Epoch %d] # batch: %d'%(epoch, i))
                     continue
@@ -515,26 +520,29 @@ def main():
                 continue
 
             train_metric_name, train_metric_score = train_metric.get()
-            throughput = int(batch_size * i /(time.time() - tic) * hvd.size())
+            throughput = int(batch_size * i /(toc - tic) * hvd.size())
 
             if opt.trainer == 'ersgd':
                 trainer.pre_test()
-            err_top1_val, err_top5_val = test(ctx, val_data)
+            err_top1_train, err_top5_train = test(ctx, train_data, val=False)
+            err_top1_val, err_top5_val = test(ctx, val_data, val=True)
             if opt.trainer == 'ersgd':
                 trainer.post_test()
 
             mx.nd.waitall()
 
             # allreduce the results
-            allreduce_array_nd = mx.nd.array([train_metric_score, err_top1_val, err_top5_val])
+            allreduce_array_nd = mx.nd.array([err_top1_train, err_top5_train, err_top1_val, err_top5_val])
             hvd.allreduce_(allreduce_array_nd, name='allreduce_array', average=True)
             allreduce_array_np = allreduce_array_nd.asnumpy()
-            train_metric_score = np.asscalar(allreduce_array_np[0])
-            err_top1_val = np.asscalar(allreduce_array_np[1])
-            err_top5_val = np.asscalar(allreduce_array_np[2])
+            err_top1_train = np.asscalar(allreduce_array_np[0])
+            err_top5_train = np.asscalar(allreduce_array_np[1])
+            err_top1_val = np.asscalar(allreduce_array_np[2])
+            err_top5_val = np.asscalar(allreduce_array_np[3])
 
             if hvd.rank() == 0:
-                logger.info('[Epoch %d] training: %s=%f'%(epoch, train_metric_name, train_metric_score))
+                # logger.info('[Epoch %d] training: %s=%f'%(epoch, train_metric_name, train_metric_score))
+                logger.info('[Epoch %d] training: err-top1=%f err-top5=%f'%(epoch, err_top1_train, err_top5_train))
                 logger.info('[Epoch %d] speed: %d samples/sec\ttime cost: %f'%(epoch, throughput, toc-tic))
                 logger.info('[Epoch %d] validation: err-top1=%f err-top5=%f'%(epoch, err_top1_val, err_top5_val))
 
@@ -544,15 +552,15 @@ def main():
                 #     net.save_parameters('%s/%.4f-imagenet-%s-%d-best.params'%(save_dir, best_val_score, model_name, epoch))
                 #     trainer.save_states('%s/%.4f-imagenet-%s-%d-best.states'%(save_dir, best_val_score, model_name, epoch))
 
-            if save_frequency and save_dir and (epoch + 1) % save_frequency == 0:
-                if hvd.local_rank() == 0:
-                    net.save_parameters('%s/imagenet-%s-%d.params'%(save_dir, model_name, epoch))
-                    trainer.save_states('%s/imagenet-%s-%d.states'%(save_dir, model_name, epoch))
+            # if save_frequency and save_dir and (epoch + 1) % save_frequency == 0:
+            #     if hvd.local_rank() == 0:
+            #         net.save_parameters('%s/imagenet-%s-%d.params'%(save_dir, model_name, epoch))
+            #         trainer.save_states('%s/imagenet-%s-%d.states'%(save_dir, model_name, epoch))
 
-        if save_frequency and save_dir:
-            if hvd.local_rank() == 0:
-                net.save_parameters('%s/imagenet-%s-%d.params'%(save_dir, model_name, opt.num_epochs-1))
-                trainer.save_states('%s/imagenet-%s-%d.states'%(save_dir, model_name, opt.num_epochs-1))
+        # if save_frequency and save_dir:
+        #     if hvd.local_rank() == 0:
+        #         net.save_parameters('%s/imagenet-%s-%d.params'%(save_dir, model_name, opt.num_epochs-1))
+        #         trainer.save_states('%s/imagenet-%s-%d.states'%(save_dir, model_name, opt.num_epochs-1))
 
 
     if opt.mode == 'hybrid':
