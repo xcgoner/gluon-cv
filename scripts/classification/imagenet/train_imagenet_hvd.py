@@ -112,7 +112,7 @@ def parse_args():
                         help='path of parameters to load from.')
     parser.add_argument('--resume-states', type=str, default='',
                         help='path of trainer state to load from.')
-    parser.add_argument('--log-interval', type=int, default=50,
+    parser.add_argument('--log-interval', type=int, default=200,
                         help='Number of batches to wait before logging.')
     parser.add_argument('--logging-file', type=str, default='train_imagenet.log',
                         help='name of training log file')
