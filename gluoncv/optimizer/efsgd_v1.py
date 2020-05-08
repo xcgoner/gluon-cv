@@ -75,7 +75,7 @@ class EFSGDV1(Optimizer):
                         lr=lr, wd=wd, **kwargs)
         else:
             e, m, m_wd, w_32 = state
-            assert(grad.dtype == numpy.float16)
+            print(grad.dtype)
             mp_efsgd_pre_update(weight, grad, e, m, m_wd, w_32, out=weight,
                         lr=lr, wd=wd, **kwargs)
 
