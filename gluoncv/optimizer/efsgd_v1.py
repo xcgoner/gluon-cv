@@ -21,8 +21,8 @@ import warnings
 import numpy
 from mxnet.optimizer import Optimizer, register
 from mxnet.ndarray import zeros, NDArray, full
-from mxnet.ndarray import efsgd_pre_update
-# from mxnet.ndarray import efsgd_pre_update, mp_efsgd_pre_update
+# from mxnet.ndarray import efsgd_pre_update
+from mxnet.ndarray import efsgd_pre_update, mp_efsgd_pre_update
 
 __all__ = ['EFSGDV1']
 
@@ -75,8 +75,8 @@ class EFSGDV1(Optimizer):
                         lr=lr, wd=wd, **kwargs)
         else:
             e, m, m_wd, w_32 = state
-            # mp_efsgd_pre_update(weight, grad, e, m, m_wd, w_32, out=weight,
-            #             lr=lr, wd=wd, **kwargs)
+            mp_efsgd_pre_update(weight, grad, e, m, m_wd, w_32, out=weight,
+                        lr=lr, wd=wd, **kwargs)
 
     def update(self, index, weight, grad, state):
         self._update_impl(index, weight, grad, state, multi_precision=False)
