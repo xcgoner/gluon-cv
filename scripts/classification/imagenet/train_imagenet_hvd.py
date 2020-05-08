@@ -503,7 +503,9 @@ def main():
                     #     else:
                     #         train_metric.update(label, outputs)
 
-                    train_loss += sum([l.sum().asscalar() for l in loss])
+                    step_loss = sum([l.sum().asscalar() for l in loss])
+
+                    train_loss += step_loss
 
                     if opt.log_interval and not (i+j+1)%opt.log_interval:
                         # train_metric_name, train_metric_score = train_metric.get()
@@ -516,7 +518,7 @@ def main():
                             #             train_metric_name, train_metric_score, trainer.learning_rate, trainer._comm_counter/1e6))
                             print('Epoch[%d] Batch[%d] Speed: %f samples/sec %s=%f lr=%f comm=%f'%(
                                         epoch, i, batch_size*hvd.size()*opt.log_interval/(time.time()-btic),
-                                        'loss', train_loss, trainer.learning_rate, trainer._comm_counter/1e6))
+                                        'loss', step_loss, trainer.learning_rate, trainer._comm_counter/1e6))
                         btic = time.time()
 
             mx.nd.waitall()
