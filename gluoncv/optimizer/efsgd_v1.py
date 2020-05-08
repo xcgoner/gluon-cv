@@ -40,7 +40,7 @@ class EFSGDV1(Optimizer):
         weight_master_copy = None
         if self.multi_precision and weight.dtype == numpy.float16:
             weight_master_copy = weight.astype(numpy.float32)
-            return (zeros(weight.shape, weight.context, dtype=numpy.float32), # e, remaining error
+            return (zeros(weight.shape, weight.context, dtype=weight.dtype), # e, remaining error
                     zeros(weight.shape, weight.context, dtype=numpy.float32), # m, momentum
                     zeros(weight.shape, weight.context, dtype=numpy.float32), # m_wd, momentum of weight decay
                     weight_master_copy) # the float32 copy of weight

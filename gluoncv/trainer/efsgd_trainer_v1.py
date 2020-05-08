@@ -97,45 +97,44 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                     else:
                         e, _, _ = self._updaters[0].states[i]
 
-                    # if random.uniform(0,1) <= self._layer_sparse_ratio:
-                    #     # compress
-                    #     input_size = e.shape[0]
-                    #     k1 = max(1, round(input_size*self._input_sparse_ratio))
-                    #     sparse_input_begin = random.choice(range(math.ceil(input_size/k1))) * k1
-                    #     sparse_input_end = min(sparse_input_begin + k1, input_size)
+                    if random.uniform(0,1) <= self._layer_sparse_ratio:
+                        # compress
+                        input_size = e.shape[0]
+                        k1 = max(1, round(input_size*self._input_sparse_ratio))
+                        sparse_input_begin = random.choice(range(math.ceil(input_size/k1))) * k1
+                        sparse_input_end = min(sparse_input_begin + k1, input_size)
 
-                    #     if len(e.shape) > 1:
-                    #         output_size = e.shape[1]
-                    #         k2 = max(1, round(output_size*self._output_sparse_ratio))
-                    #         sparse_output_begin = random.choice(range(math.ceil(output_size/k2))) * k2
-                    #         sparse_output_end = min(sparse_output_begin + k2, output_size)
-                    #         e_sync = e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
-                    #         # partial sync
-                    #         allreduce_(e_sync, average=True,
-                    #                     name=str(i), priority=-i)
-                    #         x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= e_sync
-                    #         e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
-                    #         if self._multi_precision and x.dtype == np.float16:
-                    #             pass
-                    #             # x_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] \
-                    #             #     = x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
-                    #     else:
-                    #         e_sync = e[sparse_input_begin:sparse_input_end]
-                    #         # partial sync
-                    #         allreduce_(e_sync, average=True,
-                    #                 name=str(i), priority=-i)
-                    #         x[sparse_input_begin:sparse_input_end] -= e_sync
-                    #         e[sparse_input_begin:sparse_input_end] = 0
-                    #         if self._multi_precision and x.dtype == np.float16:
-                    #             pass
-                    #             # x_32[sparse_input_begin:sparse_input_end] = x[sparse_input_begin:sparse_input_end]
+                        if len(e.shape) > 1:
+                            output_size = e.shape[1]
+                            k2 = max(1, round(output_size*self._output_sparse_ratio))
+                            sparse_output_begin = random.choice(range(math.ceil(output_size/k2))) * k2
+                            sparse_output_end = min(sparse_output_begin + k2, output_size)
+                            e_sync = e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
+                            # partial sync
+                            allreduce_(e_sync, average=True,
+                                        name=str(i), priority=-i)
+                            x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= e_sync
+                            e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
+                            if self._multi_precision and x.dtype == np.float16:
+                                x_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] \
+                                    = x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
 
-                    #     # communication counter
-                    #     if e_sync.dtype == np.float16:
-                    #         sync_factor = 0.5
-                    #     else:
-                    #         sync_factor = 1.0
-                    #     self._comm_counter += e_sync.size * 2 * sync_factor
+                        else:
+                            e_sync = e[sparse_input_begin:sparse_input_end]
+                            # partial sync
+                            allreduce_(e_sync, average=True,
+                                    name=str(i), priority=-i)
+                            x[sparse_input_begin:sparse_input_end] -= e_sync
+                            e[sparse_input_begin:sparse_input_end] = 0
+                            if self._multi_precision and x.dtype == np.float16:
+                                x_32[sparse_input_begin:sparse_input_end] = x[sparse_input_begin:sparse_input_end]
+
+                        # communication counter
+                        if e_sync.dtype == np.float16:
+                            sync_factor = 0.5
+                        else:
+                            sync_factor = 1.0
+                        self._comm_counter += e_sync.size * 2 * sync_factor
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 
