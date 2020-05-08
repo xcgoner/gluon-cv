@@ -116,8 +116,9 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                             x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= e_sync
                             e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
                             if self._multi_precision and x.dtype == np.float16:
-                                x_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] \
-                                    = x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
+                                pass
+                                # x_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] \
+                                #     = x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end]
                         else:
                             e_sync = e[sparse_input_begin:sparse_input_end]
                             # partial sync
@@ -126,7 +127,8 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                             x[sparse_input_begin:sparse_input_end] -= e_sync
                             e[sparse_input_begin:sparse_input_end] = 0
                             if self._multi_precision and x.dtype == np.float16:
-                                x_32[sparse_input_begin:sparse_input_end] = x[sparse_input_begin:sparse_input_end]
+                                pass
+                                # x_32[sparse_input_begin:sparse_input_end] = x[sparse_input_begin:sparse_input_end]
 
                         # communication counter
                         if e_sync.dtype == np.float16:
