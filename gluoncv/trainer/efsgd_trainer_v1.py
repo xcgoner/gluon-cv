@@ -129,7 +129,11 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                                 x_32[sparse_input_begin:sparse_input_end] = x[sparse_input_begin:sparse_input_end]
 
                         # communication counter
-                        self._comm_counter += e_sync.size * 2
+                        if e_sync.dtype == np.float16:
+                            sync_factor = 0.5
+                        else:
+                            sync_factor = 1.0
+                        self._comm_counter += e_sync.size * 2 * sync_factor
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
 

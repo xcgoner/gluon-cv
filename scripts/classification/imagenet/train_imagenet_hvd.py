@@ -15,8 +15,12 @@ from gluoncv.utils import makedirs, LRSequential, LRScheduler
 
 import horovod.mxnet as hvd
 from gluoncv.trainer.sgd_trainer import SGDTrainer
+from gluoncv.trainer.efsgd_trainer_v1 import EFSGDTrainerV1
+from gluoncv.trainer.qsparse_local_sgd_trainer_v1 import QSparseLocalSGDTrainerV1
 from gluoncv.trainer.ersgd_trainer_v2 import ERSGDTrainerV2
-from gluoncv.trainer.local_sgd_trainer_v1 import LocalSGDTrainerV1
+from gluoncv.trainer.ersgd2_trainer_v2 import ERSGD2TrainerV2
+from gluoncv.trainer.partial_local_sgd_trainer_v1 import PartialLocalSGDTrainerV1
+
 
 os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
 # os.environ['MXNET_SAFE_ACCUMULATION'] = '1'
@@ -405,6 +409,13 @@ def main():
             trainer = SGDTrainer(
                 net.collect_params(),  
                 optimizer, optimizer_params)
+        elif opt.trainer == 'efsgd':
+            trainer = EFSGDTrainerV1(
+                net.collect_params(),  
+                'EFSGDV1', optimizer_params, 
+                input_sparse_ratio=1./opt.input_sparse_1, 
+                output_sparse_ratio=1./opt.output_sparse_1, 
+                layer_sparse_ratio=1./opt.layer_sparse_1)
         elif opt.trainer == 'ersgd':
             trainer = ERSGDTrainerV2(
                 net.collect_params(),  
@@ -413,10 +424,13 @@ def main():
                 output_sparse_ratio=1./opt.output_sparse_1, 
                 layer_sparse_ratio=1./opt.layer_sparse_1)
         else:
-            trainer = LocalSGDTrainerV1(
+            trainer = SGDTrainer(
                 net.collect_params(),  
-                optimizer, optimizer_params, 
-                local_sgd_interval=opt.local_sgd_interval)
+                optimizer, optimizer_params)
+            # trainer = LocalSGDTrainerV1(
+            #     net.collect_params(),  
+            #     optimizer, optimizer_params, 
+            #     local_sgd_interval=opt.local_sgd_interval)
 
         if opt.resume_states != '':
             trainer.load_states(opt.resume_states)
@@ -518,7 +532,7 @@ def main():
                             #             train_metric_name, train_metric_score, trainer.learning_rate, trainer._comm_counter/1e6))
                             print('Epoch[%d] Batch[%d] Speed: %f samples/sec %s=%f lr=%f comm=%f'%(
                                         epoch, i, batch_size*hvd.size()*opt.log_interval/(time.time()-btic),
-                                        'loss', step_loss, trainer.learning_rate, trainer._comm_counter/1e6))
+                                        'loss', step_loss/batch_size, trainer.learning_rate, trainer._comm_counter/1e6))
                         btic = time.time()
 
             mx.nd.waitall()
