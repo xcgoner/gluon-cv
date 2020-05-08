@@ -30,7 +30,7 @@ __all__ = ['EFSGDV1']
 class EFSGDV1(Optimizer):
     """The EF-SGD optimizer.
     """
-    def __init__(self, learning_rate=0.1, momentum=0.9, nesterov=True,
+    def __init__(self, momentum=0.9, nesterov=True,
                  **kwargs):
         super(EFSGDV1, self).__init__(learning_rate=learning_rate, **kwargs)
         self.momentum = momentum
@@ -75,6 +75,7 @@ class EFSGDV1(Optimizer):
                         lr=lr, wd=wd, **kwargs)
         else:
             e, m, m_wd, w_32 = state
+            assert(grad.dtype == numpy.float16)
             mp_efsgd_pre_update(weight, grad, e, m, m_wd, w_32, out=weight,
                         lr=lr, wd=wd, **kwargs)
 
