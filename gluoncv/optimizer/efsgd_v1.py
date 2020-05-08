@@ -32,7 +32,7 @@ class EFSGDV1(Optimizer):
     """
     def __init__(self, momentum=0.9, nesterov=True,
                  **kwargs):
-        super(EFSGDV1, self).__init__(learning_rate=learning_rate, **kwargs)
+        super(EFSGDV1, self).__init__(**kwargs)
         self.momentum = momentum
         self.nesterov = nesterov
 
