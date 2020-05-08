@@ -75,8 +75,8 @@ class EFSGDV1(Optimizer):
                         lr=lr, wd=wd, **kwargs)
         else:
             e, m, m_wd, w_32 = state
-            mp_efsgd_pre_update(weight, grad, e, m, m_wd, w_32, out=weight,
-                        lr=lr, wd=wd, **kwargs)
+            # mp_efsgd_pre_update(weight, grad, e, m, m_wd, w_32, out=weight,
+            #             lr=lr, wd=wd, **kwargs)
 
     def update(self, index, weight, grad, state):
         self._update_impl(index, weight, grad, state, multi_precision=False)
