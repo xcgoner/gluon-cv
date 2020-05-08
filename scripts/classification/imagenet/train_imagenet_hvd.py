@@ -438,7 +438,8 @@ def main():
             tic = time.time()
             if opt.use_rec:
                 train_data.reset()
-            train_metric.reset()
+            # train_metric.reset()
+            train_loss = 0
             btic = time.time()
 
             # test speed
@@ -492,22 +493,30 @@ def main():
                         l.backward()
                     trainer.step(batch_size)
 
-                    if opt.mixup:
-                        output_softmax = [nd.SoftmaxActivation(out.astype('float32', copy=False)) \
-                                        for out in outputs]
-                        train_metric.update(label, output_softmax)
-                    else:
-                        if opt.label_smoothing:
-                            train_metric.update(hard_label, outputs)
-                        else:
-                            train_metric.update(label, outputs)
+                    # if opt.mixup:
+                    #     output_softmax = [nd.SoftmaxActivation(out.astype('float32', copy=False)) \
+                    #                     for out in outputs]
+                    #     train_metric.update(label, output_softmax)
+                    # else:
+                    #     if opt.label_smoothing:
+                    #         train_metric.update(hard_label, outputs)
+                    #     else:
+                    #         train_metric.update(label, outputs)
+
+                    train_loss += sum([l.sum().asscalar() for l in loss])
 
                     if opt.log_interval and not (i+j+1)%opt.log_interval:
-                        train_metric_name, train_metric_score = train_metric.get()
+                        # train_metric_name, train_metric_score = train_metric.get()
                         if hvd.rank() == 0:
-                            logger.info('Epoch[%d] Batch[%d] Speed: %f samples/sec %s=%f lr=%f comm=%f'%(
+                            # logger.info('Epoch[%d] Batch[%d] Speed: %f samples/sec %s=%f lr=%f comm=%f'%(
+                            #             epoch, i, batch_size*hvd.size()*opt.log_interval/(time.time()-btic),
+                            #             train_metric_name, train_metric_score, trainer.learning_rate, trainer._comm_counter/1e6))
+                            # print('Epoch[%d] Batch[%d] Speed: %f samples/sec %s=%f lr=%f comm=%f'%(
+                            #             epoch, i, batch_size*hvd.size()*opt.log_interval/(time.time()-btic),
+                            #             train_metric_name, train_metric_score, trainer.learning_rate, trainer._comm_counter/1e6))
+                            print('Epoch[%d] Batch[%d] Speed: %f samples/sec %s=%f lr=%f comm=%f'%(
                                         epoch, i, batch_size*hvd.size()*opt.log_interval/(time.time()-btic),
-                                        train_metric_name, train_metric_score, trainer.learning_rate, trainer._comm_counter/1e6))
+                                        'loss', train_loss, trainer.learning_rate, trainer._comm_counter/1e6))
                         btic = time.time()
 
             mx.nd.waitall()
@@ -523,11 +532,13 @@ def main():
             train_metric_name, train_metric_score = train_metric.get()
             throughput = int(batch_size * i /(toc - tic) * hvd.size())
 
+            train_loss /= (batch_size * i)
+
             if opt.trainer == 'ersgd':
                 trainer.pre_test()
-            err_train_tic = time.time()
-            err_top1_train, err_top5_train = test(ctx, train_data, val=False)
-            err_train_toc = time.time()
+            # err_train_tic = time.time()
+            # err_top1_train, err_top5_train = test(ctx, train_data, val=False)
+            err_val_tic = time.time()
             err_top1_val, err_top5_val = test(ctx, val_data, val=True)
             err_val_toc = time.time()
             if opt.trainer == 'ersgd':
@@ -536,19 +547,18 @@ def main():
             mx.nd.waitall()
 
             # allreduce the results
-            allreduce_array_nd = mx.nd.array([err_top1_train, err_top5_train, err_top1_val, err_top5_val])
+            allreduce_array_nd = mx.nd.array([train_loss, err_top1_val, err_top5_val])
             hvd.allreduce_(allreduce_array_nd, name='allreduce_array', average=True)
             allreduce_array_np = allreduce_array_nd.asnumpy()
-            err_top1_train = np.asscalar(allreduce_array_np[0])
-            err_top5_train = np.asscalar(allreduce_array_np[1])
-            err_top1_val = np.asscalar(allreduce_array_np[2])
-            err_top5_val = np.asscalar(allreduce_array_np[3])
+            train_loss = np.asscalar(allreduce_array_np[0])
+            err_top1_val = np.asscalar(allreduce_array_np[1])
+            err_top5_val = np.asscalar(allreduce_array_np[2])
 
             if hvd.rank() == 0:
                 # logger.info('[Epoch %d] training: %s=%f'%(epoch, train_metric_name, train_metric_score))
-                logger.info('[Epoch %d] training: err-top1=%f err-top5=%f err-time=%f'%(epoch, err_top1_train, err_top5_train, err_train_toc-err_train_tic))
+                logger.info('[Epoch %d] training: loss=%f'%(epoch, train_loss))
                 logger.info('[Epoch %d] speed: %d samples/sec training-time: %f comm: %f'%(epoch, throughput, toc-tic, trainer._comm_counter/1e6))
-                logger.info('[Epoch %d] validation: err-top1=%f err-top5=%f err-time=%f'%(epoch, err_top1_val, err_top5_val, err_val_toc - err_train_toc))
+                logger.info('[Epoch %d] validation: err-top1=%f err-top5=%f err-time=%f'%(epoch, err_top1_val, err_top5_val, err_val_toc - err_val_tic))
                 trainer._comm_counter = 0
 
             if err_top1_val < best_val_score:
