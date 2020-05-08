@@ -113,7 +113,7 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                             # partial sync
                             allreduce_(e_sync, average=True,
                                         name=str(i), priority=-i)
-                            x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= e_sync
+                            # x[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] -= e_sync
                             e[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] = 0
                             if self._multi_precision and x.dtype == np.float16:
                                 x_32[sparse_input_begin:sparse_input_end,sparse_output_begin:sparse_output_end] \
@@ -124,7 +124,7 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                             # partial sync
                             allreduce_(e_sync, average=True,
                                     name=str(i), priority=-i)
-                            x[sparse_input_begin:sparse_input_end] -= e_sync
+                            # x[sparse_input_begin:sparse_input_end] -= e_sync
                             e[sparse_input_begin:sparse_input_end] = 0
                             if self._multi_precision and x.dtype == np.float16:
                                 x_32[sparse_input_begin:sparse_input_end] = x[sparse_input_begin:sparse_input_end]
