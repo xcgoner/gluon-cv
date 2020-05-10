@@ -169,11 +169,12 @@ def main():
 
     optimizer = opt.optimizer
 
-    if opt.trainer == 'ersgd':
-        warmup_epochs = max(5, round(opt.input_sparse_1 * opt.output_sparse_1 * opt.layer_sparse_1 * 5. / 128. * opt.lr / 0.05 * opt.warmup_epochs))
-        print('warmup = %d' % warmup_epochs)
-    else:
-        warmup_epochs = opt.warmup_epochs
+    # if opt.trainer == 'ersgd':
+    #     warmup_epochs = max(5, round(opt.input_sparse_1 * opt.output_sparse_1 * opt.layer_sparse_1 * 5. / 128. * opt.lr / 0.05 * opt.warmup_epochs))
+    #     print('warmup = %d' % warmup_epochs)
+    # else:
+    #     warmup_epochs = opt.warmup_epochs
+    warmup_epochs = opt.warmup_epochs
 
     lr_decay = opt.lr_decay
     lr_decay_period = opt.lr_decay_period
@@ -416,6 +417,14 @@ def main():
                 input_sparse_ratio=1./opt.input_sparse_1, 
                 output_sparse_ratio=1./opt.output_sparse_1, 
                 layer_sparse_ratio=1./opt.layer_sparse_1)
+        elif opt.trainer == 'qsparselocalsgd':
+            trainer = QSparseLocalSGDTrainerV1(
+                net.collect_params(),  
+                'nag', optimizer_params, 
+                input_sparse_ratio=1./opt.input_sparse_1, 
+                output_sparse_ratio=1./opt.output_sparse_1, 
+                layer_sparse_ratio=1./opt.layer_sparse_1,
+                local_sgd_interval=opt.local_sgd_interval)
         elif opt.trainer == 'ersgd':
             trainer = ERSGDTrainerV2(
                 net.collect_params(),  
@@ -550,14 +559,19 @@ def main():
 
             train_loss /= (batch_size * i)
 
-            if opt.trainer == 'ersgd':
+            if opt.trainer == 'ersgd' or opt.trainer == 'qsparselocalsgd':
+                allreduce_for_val = True
+            else:
+                allreduce_for_val = False
+                
+            if allreduce_for_val:
                 trainer.pre_test()
             # err_train_tic = time.time()
             # err_top1_train, err_top5_train = test(ctx, train_data, val=False)
             err_val_tic = time.time()
             err_top1_val, err_top5_val = test(ctx, val_data, val=True)
             err_val_toc = time.time()
-            if opt.trainer == 'ersgd':
+            if allreduce_for_val:
                 trainer.post_test()
 
             mx.nd.waitall()
