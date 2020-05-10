@@ -140,6 +140,7 @@ def parse_args():
                         help='interval for model synchronization')
     parser.add_argument('--test-speed', type=int, default=0, 
                         help='turn on to use dummy data for speed testing.')
+    parser.add_argument('--sync-states', action='store_true', help='Turn on to sync states')
     opt = parser.parse_args()
     return opt
 
@@ -420,7 +421,7 @@ def main():
         elif opt.trainer == 'qsparselocalsgd':
             trainer = QSparseLocalSGDTrainerV1(
                 net.collect_params(),  
-                'nag', optimizer_params, 
+                optimizer, optimizer_params, 
                 input_sparse_ratio=1./opt.input_sparse_1, 
                 output_sparse_ratio=1./opt.output_sparse_1, 
                 layer_sparse_ratio=1./opt.layer_sparse_1,
@@ -432,6 +433,25 @@ def main():
                 input_sparse_ratio=1./opt.input_sparse_1, 
                 output_sparse_ratio=1./opt.output_sparse_1, 
                 layer_sparse_ratio=1./opt.layer_sparse_1)
+        elif opt.trainer == 'partiallocalsgd':
+            trainer = PartialLocalSGDTrainerV1(
+                net.collect_params(),  
+                optimizer, optimizer_params, 
+                input_sparse_ratio=1./opt.input_sparse_1, 
+                output_sparse_ratio=1./opt.output_sparse_1, 
+                layer_sparse_ratio=1./opt.layer_sparse_1,
+                local_sgd_interval=opt.local_sgd_interval)
+        elif opt.trainer == 'ersgd2':
+            trainer = ERSGD2TrainerV2(
+                net.collect_params(),  
+                optimizer, optimizer_params, 
+                input_sparse_ratio_1=1./opt.input_sparse_1, 
+                output_sparse_ratio_1=1./opt.output_sparse_1, 
+                layer_sparse_ratio_1=1./opt.layer_sparse_1,
+                input_sparse_ratio_2=1./opt.input_sparse_2, 
+                output_sparse_ratio_2=1./opt.output_sparse_2, 
+                layer_sparse_ratio_2=1./opt.layer_sparse_2,
+                local_sgd_interval=opt.local_sgd_interval)
         else:
             trainer = SGDTrainer(
                 net.collect_params(),  
@@ -472,6 +492,9 @@ def main():
                 n_repeats = 1
             else:
                 n_repeats = 0
+            
+            if opt.sync_states and epoch > 0:
+                trainer.allreduce_states()
 
             for i, batch in enumerate(train_data):
                 
@@ -563,7 +586,7 @@ def main():
                 allreduce_for_val = True
             else:
                 allreduce_for_val = False
-                
+
             if allreduce_for_val:
                 trainer.pre_test()
             # err_train_tic = time.time()
