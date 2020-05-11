@@ -24,11 +24,11 @@ from gluoncv.trainer.partial_local_sgd_trainer_v1 import PartialLocalSGDTrainerV
 
 os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
 # os.environ['MXNET_SAFE_ACCUMULATION'] = '1'
-os.environ['MXNET_GPU_MEM_POOL_ROUND_LINEAR_CUTOFF'] = '26'
-os.environ['MXNET_EXEC_BULK_EXEC_MAX_NODE_TRAIN_FWD'] = '999'
-os.environ['MXNET_EXEC_BULK_EXEC_MAX_NODE_TRAIN_BWD'] = '25'
-os.environ['MXNET_GPU_COPY_NTHREADS'] = '1'
-os.environ['MXNET_OPTIMIZER_AGGREGATION_SIZE'] = '54'
+# os.environ['MXNET_GPU_MEM_POOL_ROUND_LINEAR_CUTOFF'] = '26'
+# os.environ['MXNET_EXEC_BULK_EXEC_MAX_NODE_TRAIN_FWD'] = '999'
+# os.environ['MXNET_EXEC_BULK_EXEC_MAX_NODE_TRAIN_BWD'] = '25'
+# os.environ['MXNET_GPU_COPY_NTHREADS'] = '1'
+# os.environ['MXNET_OPTIMIZER_AGGREGATION_SIZE'] = '54'
 
 np.random.seed(100)
 random.seed(100)
@@ -260,7 +260,6 @@ def main():
             shuffle             = True,
             batch_size          = batch_size,
             round_batch         = False,
-            prefetch_buffer     = num_workers,
             data_shape          = (3, input_size, input_size),
             mean_r              = mean_rgb[0],
             mean_g              = mean_rgb[1],
