@@ -150,7 +150,9 @@ def main():
 
     hvd.init()
 
-    filehandler = logging.FileHandler(opt.logging_file)
+    logging_file = 'train_imagenet_%s.log' % (opt.trainer)
+
+    filehandler = logging.FileHandler(logging_file)
     streamhandler = logging.StreamHandler()
 
     logger = logging.getLogger('')
