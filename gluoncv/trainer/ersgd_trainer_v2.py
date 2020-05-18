@@ -102,7 +102,7 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
                     if self._multi_precision and x.dtype == np.float16:
                         _, x_32 = self._updaters[0].states[i]
 
-                    if random.uniform(0,1) <= self._layer_sparse_ratio or len(x.shape) == 1:
+                    if random.uniform(0,1) <= self._layer_sparse_ratio:
                         # compress
                         input_size = x.shape[0]
                         k1 = max(1, round(input_size*self._input_sparse_ratio))
