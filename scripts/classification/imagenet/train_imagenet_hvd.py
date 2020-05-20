@@ -193,19 +193,29 @@ def main():
     lr_decay_epoch = [e - warmup_epochs for e in lr_decay_epoch]
     num_batches = num_training_samples // (batch_size * hvd.size())
 
-    if opt.trainer == 'ersgd':
-        min_lr = opt.warmup_lr
-    else:
-        min_lr = 0.0
+    # if opt.trainer == 'ersgd':
+    #     max_lr = opt.warmup_lr
+    # else:
+    #     max_lr = 10.0
+
+    # lr_scheduler = LRSequential([
+    #     LRScheduler('linear', base_lr=opt.warmup_lr, target_lr=opt.lr,
+    #                 nepochs=warmup_epochs, iters_per_epoch=num_batches, max_lr=max_lr),
+    #     LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
+    #                 nepochs=opt.num_epochs - warmup_epochs,
+    #                 iters_per_epoch=num_batches,
+    #                 step_epoch=lr_decay_epoch,
+    #                 step_factor=lr_decay, power=2, max_lr=max_lr)
+    # ])
 
     lr_scheduler = LRSequential([
         LRScheduler('linear', base_lr=opt.warmup_lr, target_lr=opt.lr,
-                    nepochs=warmup_epochs, iters_per_epoch=num_batches, min_lr=min_lr),
+                    nepochs=warmup_epochs, iters_per_epoch=num_batches),
         LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
                     nepochs=opt.num_epochs - warmup_epochs,
                     iters_per_epoch=num_batches,
                     step_epoch=lr_decay_epoch,
-                    step_factor=lr_decay, power=2, min_lr=min_lr)
+                    step_factor=lr_decay, power=2)
     ])
 
     model_name = opt.model
