@@ -75,6 +75,8 @@ def parse_args():
                         help='interval for periodic learning rate decays. default is 0 to disable.')
     parser.add_argument('--lr-decay-epoch', type=str, default='40,60',
                         help='epochs at which learning rate decays. default is 40,60.')
+    parser.add_argument('--min-lr', type=float, default=0.0,
+                        help='minimum learning rate. default is 0.0.')
     parser.add_argument('--warmup-lr', type=float, default=0.0,
                         help='starting warmup learning rate. default is 0.0.')
     parser.add_argument('--warmup-epochs', type=int, default=0,
@@ -215,7 +217,7 @@ def main():
                     nepochs=opt.num_epochs - warmup_epochs,
                     iters_per_epoch=num_batches,
                     step_epoch=lr_decay_epoch,
-                    step_factor=lr_decay, power=2)
+                    step_factor=lr_decay, power=2, min_lr=opt.min_lr)
     ])
 
     model_name = opt.model
