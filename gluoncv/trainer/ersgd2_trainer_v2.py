@@ -184,7 +184,7 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
                     # Partial-local-SGD
-                    # x = param.list_data()[0]
+                    x = param.list_data()[0]
 
                     if self._multi_precision and x.dtype == np.float16:
                         m, _ = self._updaters[0].states[i]
