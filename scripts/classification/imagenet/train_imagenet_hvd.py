@@ -606,7 +606,7 @@ def main():
 
             train_loss /= (batch_size * i)
 
-            if opt.trainer == 'ersgd' or opt.trainer == 'qsparselocalsgd':
+            if opt.trainer == 'ersgd' or opt.trainer == 'qsparselocalsgd' or opt.trainer == 'ersgd2' or opt.trainer == 'partiallocalsgd':
                 allreduce_for_val = True
             else:
                 allreduce_for_val = False
