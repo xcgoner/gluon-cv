@@ -212,7 +212,7 @@ def main():
 
     lr_scheduler = LRSequential([
         LRScheduler('linear', base_lr=opt.warmup_lr, target_lr=opt.lr,
-                    nepochs=warmup_epochs, iters_per_epoch=num_batches),
+                    nepochs=warmup_epochs, iters_per_epoch=num_batches, max_lr=opt.max_lr),
         LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
                     nepochs=opt.num_epochs - warmup_epochs,
                     iters_per_epoch=num_batches,
