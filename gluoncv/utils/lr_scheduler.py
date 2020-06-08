@@ -83,7 +83,7 @@ class LRScheduler(lr_scheduler.LRScheduler):
     def __init__(self, mode, base_lr=0.1, target_lr=0,
                  niters=0, nepochs=0, iters_per_epoch=0, offset=0,
                  power=2, step_iter=None, step_epoch=None, step_factor=0.1,
-                 baselr=None, targetlr=None, max_lr=None):
+                 baselr=None, targetlr=None):
         super(LRScheduler, self).__init__()
         assert(mode in ['constant', 'step', 'linear', 'poly', 'cosine'])
 
@@ -114,11 +114,6 @@ class LRScheduler(lr_scheduler.LRScheduler):
         self.offset = offset
         self.power = power
         self.step_factor = step_factor
-
-        if max_lr is None:
-            self.max_lr = float("inf")
-        else:
-            self.max_lr = max_lr
 
     def __call__(self, num_update):
         self.update(num_update)
@@ -151,4 +146,3 @@ class LRScheduler(lr_scheduler.LRScheduler):
         else:
             self.learning_rate = self.target_lr + (self.base_lr - self.target_lr) * factor
         
-        self.learning_rate = min(self.learning_rate, self.max_lr)

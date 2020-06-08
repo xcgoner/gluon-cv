@@ -75,8 +75,6 @@ def parse_args():
                         help='interval for periodic learning rate decays. default is 0 to disable.')
     parser.add_argument('--lr-decay-epoch', type=str, default='40,60',
                         help='epochs at which learning rate decays. default is 40,60.')
-    parser.add_argument('--max-lr', type=float, default=999,
-                        help='maximum learning rate. default is 0.0.')
     parser.add_argument('--warmup-lr', type=float, default=0.0,
                         help='starting warmup learning rate. default is 0.0.')
     parser.add_argument('--warmup-epochs', type=int, default=0,
@@ -147,7 +145,6 @@ def parse_args():
                         help='interval for model synchronization')
     parser.add_argument('--test-speed', type=int, default=0, 
                         help='turn on to use dummy data for speed testing.')
-    parser.add_argument('--sync-states', action='store_true', help='Turn on to sync states')
     opt = parser.parse_args()
     return opt
 
@@ -179,11 +176,6 @@ def main():
 
     optimizer = opt.optimizer
 
-    # if opt.trainer == 'ersgd':
-    #     warmup_epochs = max(5, round(opt.input_sparse_1 * opt.output_sparse_1 * opt.layer_sparse_1 * 5. / 128. * opt.lr / 0.05 * opt.warmup_epochs))
-    #     print('warmup = %d' % warmup_epochs)
-    # else:
-    #     warmup_epochs = opt.warmup_epochs
     warmup_epochs = opt.warmup_epochs
 
     lr_decay = opt.lr_decay
@@ -195,30 +187,16 @@ def main():
     lr_decay_epoch = [e - warmup_epochs for e in lr_decay_epoch]
     num_batches = num_training_samples // (batch_size * hvd.size())
 
-    # if opt.trainer == 'ersgd':
-    #     max_lr = opt.warmup_lr
-    # else:
-    #     max_lr = 10.0
-
-    # lr_scheduler = LRSequential([
-    #     LRScheduler('linear', base_lr=opt.warmup_lr, target_lr=opt.lr,
-    #                 nepochs=warmup_epochs, iters_per_epoch=num_batches, max_lr=max_lr),
-    #     LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
-    #                 nepochs=opt.num_epochs - warmup_epochs,
-    #                 iters_per_epoch=num_batches,
-    #                 step_epoch=lr_decay_epoch,
-    #                 step_factor=lr_decay, power=2, max_lr=max_lr)
-    # ])
-
     lr_scheduler = LRSequential([
         LRScheduler('linear', base_lr=opt.warmup_lr, target_lr=opt.lr,
-                    nepochs=warmup_epochs, iters_per_epoch=num_batches, max_lr=opt.max_lr),
+                    nepochs=warmup_epochs, iters_per_epoch=num_batches),
         LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
                     nepochs=opt.num_epochs - warmup_epochs,
                     iters_per_epoch=num_batches,
                     step_epoch=lr_decay_epoch,
-                    step_factor=lr_decay, power=2, max_lr=opt.max_lr)
+                    step_factor=lr_decay, power=2)
     ])
+
 
     model_name = opt.model
 
@@ -516,9 +494,6 @@ def main():
                 n_repeats = 1
             else:
                 n_repeats = 0
-            
-            if opt.sync_states and epoch > 0:
-                trainer.allreduce_states()
 
             for i, batch in enumerate(train_data):
                 

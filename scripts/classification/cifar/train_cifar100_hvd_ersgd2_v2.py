@@ -79,7 +79,6 @@ def parse_args():
     parser.add_argument('--local-sgd-interval', type=int, default=4,
                         help='interval for model synchronization')
     parser.add_argument('--warmup', type=float, default=1.0, help='Turn on learning rate warmup')
-    parser.add_argument('--sync-states', action='store_true', help='Turn on to sync states')
     opt = parser.parse_args()
     return opt
 
@@ -227,16 +226,10 @@ def main():
                 lr *= lr_decay
                 trainer.set_learning_rate(lr)
                 lr_decay_count += 1
-                if opt.sync_states:
-                    trainer.allreduce_states()
             
             # warmup
             if epoch < warmup_epochs:
                 trainer.set_learning_rate(lr*(epoch+1)/warmup_epochs)
-
-            if epoch >= lr_decay_epoch[-2] and opt.sync_states:
-                trainer._sync_states = True
-                # trainer._input_sparse_ratio_2 = 2./opt.input_sparse_2
 
             for i, batch in enumerate(train_data):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)

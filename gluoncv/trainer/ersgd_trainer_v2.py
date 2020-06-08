@@ -159,21 +159,4 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 param.list_data()[0][:] = self._params_cache[i]
 
-    # def pre_test(self):
-    #     for i, param in enumerate(self._params):
-    #         if param.grad_req != 'null':
-    #             # self._params_cache[i][:] = param.list_data()[0]
-    #             # hvd.allreduce_(param.list_data()[0], average=True, 
-    #             #                        name=str(i), priority=-i)
-    #             x = param.list_data()[0]
-    #             allreduce_(x, average=True, name=str(i), priority=-i)
-    #             if self._multi_precision and x.dtype == np.float16:
-    #                 _, x_32 = self._updaters[0].states[i]
-    #                 x_32[:] = x
-                    
-    # def post_test(self):
-    #     # for i, param in enumerate(self._params):
-    #     #     if param.grad_req != 'null':
-    #     #         param.list_data()[0][:] = self._params_cache[i]
-    #     pass
 
