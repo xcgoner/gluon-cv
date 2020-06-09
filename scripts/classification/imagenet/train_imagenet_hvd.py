@@ -188,6 +188,7 @@ def main():
     num_batches = num_training_samples // (batch_size * hvd.size())
 
     if "_" in opt.lr_mode:
+        momentum_reset = True
         lr_opts = opt.lr_mode.split("_")
         lr_mode = lr_opts[0]
         n_restarts = int(lr_opts[1])
@@ -214,18 +215,23 @@ def main():
                         step_epoch=lr_decay_epoch,
                         step_factor=lr_decay, power=2)
             ]
+        momentum_reset_epochs = [num_epochs_per_restart + num_epochs_residual - first_warmup]
         for restart in range(1, n_restarts):
+            target_lr = opt.lr * (restart_decay**restart)
             lr_schduler_list.append(
-                LRScheduler('linear', base_lr=0, target_lr=opt.lr,
+                LRScheduler('linear', base_lr=0, target_lr=target_lr,
                             nepochs=second_warmup, iters_per_epoch=num_batches)
             )
             lr_schduler_list.append(
-                LRScheduler(lr_mode, base_lr=opt.lr, target_lr=0,
+                LRScheduler(lr_mode, base_lr=target_lr, target_lr=0,
                             nepochs=num_epochs_per_restart - second_warmup,
                             iters_per_epoch=num_batches,
                             step_epoch=lr_decay_epoch,
                             step_factor=lr_decay, power=2)
             )
+            momentum_reset_epochs.append(momentum_reset_epochs[-1]+num_epochs_per_restart)
+        if hvd.rank() == 0:
+            print(momentum_reset_epochs)
         lr_scheduler = LRSequential(lr_schduler_list)
     else:
         lr_scheduler = LRSequential([
