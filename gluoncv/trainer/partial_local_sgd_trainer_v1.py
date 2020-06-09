@@ -166,10 +166,14 @@ class PartialLocalSGDTrainerV1(mx.gluon.Trainer):
                 if param.list_grad()[0].stype == 'default':
                     x = param.list_data()[0]
                     if self._multi_precision and x.dtype == np.float16:
-                        m, _ = self._updaters[0].states[i]
+                        m, x_32 = self._updaters[0].states[i]
                     else:
                         m = self._updaters[0].states[i]
                     m[:] = 0
+                    hvd.allreduce_(x, average=True, 
+                                       name=str(i), priority=-i)
+                    if self._multi_precision and x.dtype == np.float16:
+                        x_32[:] = x
     
     def pre_test(self):
         for i, param in enumerate(self._params):
