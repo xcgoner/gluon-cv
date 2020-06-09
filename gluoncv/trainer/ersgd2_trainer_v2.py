@@ -196,6 +196,16 @@ class ERSGD2TrainerV2(mx.gluon.Trainer):
                         # allreduce_(x, average=True, name=str(i), priority=-i)
                         allreduce_(m, average=True, name=str(i+n_params), priority=-i)
     
+    def reset_states(self):
+        for i, param in enumerate(self._params):
+            if param.grad_req != 'null':
+                if param.list_grad()[0].stype == 'default':
+                    if self._multi_precision and x.dtype == np.float16:
+                        m, _ = self._updaters[0].states[i]
+                    else:
+                        m = self._updaters[0].states[i]
+                    m[:] = 0
+    
     def _init_params_cache(self):
         if self._params_cache == []:
             # initialize the states

@@ -542,6 +542,10 @@ def main():
             else:
                 n_repeats = 0
 
+            if momentum_reset:
+                if epoch in momentum_reset_epochs:
+                    trainer.reset_states()
+
             for i, batch in enumerate(train_data):
                 
                 # test speed

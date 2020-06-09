@@ -191,6 +191,16 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
                 else:
                     self._params_cache.append([])
         self._params_cache_to_init = False
+
+    def reset_states(self):
+        for i, param in enumerate(self._params):
+            if param.grad_req != 'null':
+                if param.list_grad()[0].stype == 'default':
+                    if self._multi_precision and x.dtype == np.float16:
+                        m, _ = self._updaters[0].states[i]
+                    else:
+                        m = self._updaters[0].states[i]
+                    m[:] = 0
     
     def pre_test(self):
         for i, param in enumerate(self._params):

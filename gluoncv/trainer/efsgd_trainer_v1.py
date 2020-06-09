@@ -147,5 +147,16 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
                         self._comm_counter += e_sync.size * 2 * sync_factor
                 else:
                     raise ValueError("Cannot pull row_sparse parameters for local SGD")
+    
+    def reset_states(self):
+        for i, param in enumerate(self._params):
+            if param.grad_req != 'null':
+                if param.list_grad()[0].stype == 'default':
+                    if self._multi_precision and x.dtype == np.float16:
+                        _, m, m_wd, _ = self._updaters[0].states[i]
+                    else:
+                        _, m, m_wd = self._updaters[0].states[i]
+                    m[:] = 0
+                    m_wd[:] = 0
 
 
