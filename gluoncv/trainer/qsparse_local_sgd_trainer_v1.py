@@ -196,6 +196,7 @@ class QSparseLocalSGDTrainerV1(mx.gluon.Trainer):
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
+                    x = param.list_data()[0]
                     if self._multi_precision and x.dtype == np.float16:
                         m, _ = self._updaters[0].states[i]
                     else:

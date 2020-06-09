@@ -152,11 +152,13 @@ class EFSGDTrainerV1(mx.gluon.Trainer):
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
+                    x = param.list_data()[0]
                     if self._multi_precision and x.dtype == np.float16:
                         _, m, m_wd, _ = self._updaters[0].states[i]
                     else:
                         _, m, m_wd = self._updaters[0].states[i]
                     m[:] = 0
                     m_wd[:] = 0
+
 
 
