@@ -187,15 +187,56 @@ def main():
     lr_decay_epoch = [e - warmup_epochs for e in lr_decay_epoch]
     num_batches = num_training_samples // (batch_size * hvd.size())
 
-    lr_scheduler = LRSequential([
-        LRScheduler('linear', base_lr=opt.warmup_lr, target_lr=opt.lr,
-                    nepochs=warmup_epochs, iters_per_epoch=num_batches),
-        LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
-                    nepochs=opt.num_epochs - warmup_epochs,
-                    iters_per_epoch=num_batches,
-                    step_epoch=lr_decay_epoch,
-                    step_factor=lr_decay, power=2)
-    ])
+    if "_" in opt.lr_mode:
+        lr_opts = opt.lr_mode.split("_")
+        lr_mode = lr_opts[0]
+        n_restarts = int(lr_opts[1])
+        first_warmup = 0
+        second_warmup = 0
+        restart_decay = 1.0
+        if len(lr_opts) >= 3:
+            first_warmup = int(lr_opts[2])
+        if len(lr_opts) >= 4:
+            second_warmup = int(lr_opts[3])
+        if len(lr_opts) >= 5:
+            restart_decay = float(lr_opts[4])
+        num_epochs_per_restart = opt.num_epochs // n_restarts
+        num_epochs_residual = opt.num_epochs - num_epochs_per_restart * n_restarts
+        if hvd.rank() == 0:
+            print("first warmup: %d, second warmup: %d, # restarts: %d, per restart: %d, decay: %f" \
+                    % (first_warmup,second_warmup,n_restarts,num_epochs_per_restart, restart_decay))
+        lr_schduler_list = [
+            LRScheduler('linear', base_lr=0, target_lr=opt.lr,
+                        nepochs=first_warmup, iters_per_epoch=num_batches),
+            LRScheduler(lr_mode, base_lr=opt.lr, target_lr=0,
+                        nepochs=num_epochs_per_restart + num_epochs_residual - first_warmup,
+                        iters_per_epoch=num_batches,
+                        step_epoch=lr_decay_epoch,
+                        step_factor=lr_decay, power=2)
+            ]
+        for restart in range(1, n_restarts):
+            lr_schduler_list.append(
+                LRScheduler('linear', base_lr=0, target_lr=opt.lr,
+                            nepochs=second_warmup, iters_per_epoch=num_batches)
+            )
+            lr_schduler_list.append(
+                LRScheduler(lr_mode, base_lr=opt.lr, target_lr=0,
+                            nepochs=num_epochs_per_restart - second_warmup,
+                            iters_per_epoch=num_batches,
+                            step_epoch=lr_decay_epoch,
+                            step_factor=lr_decay, power=2)
+            )
+        lr_scheduler = LRSequential(lr_schduler_list)
+    else:
+        lr_scheduler = LRSequential([
+            LRScheduler('linear', base_lr=opt.warmup_lr, target_lr=opt.lr,
+                        nepochs=warmup_epochs, iters_per_epoch=num_batches),
+            LRScheduler(opt.lr_mode, base_lr=opt.lr, target_lr=0,
+                        nepochs=opt.num_epochs - warmup_epochs,
+                        iters_per_epoch=num_batches,
+                        step_epoch=lr_decay_epoch,
+                        step_factor=lr_decay, power=2)
+        ])
 
 
     model_name = opt.model
