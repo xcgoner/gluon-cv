@@ -174,8 +174,6 @@ def main():
     context = [mx.gpu(hvd.local_rank())]
     num_workers = opt.num_workers
 
-    optimizer = opt.optimizer
-
 
     model_name = opt.model
 
@@ -189,10 +187,6 @@ def main():
 
     if opt.last_gamma:
         kwargs['last_gamma'] = True
-
-    optimizer_params = {'wd': opt.wd, 'momentum': opt.momentum, 'lr_scheduler': lr_scheduler}
-    if opt.dtype != 'float32':
-        optimizer_params['multi_precision'] = True
 
     net = get_model(model_name, **kwargs)
     net.cast(opt.dtype)
@@ -389,6 +383,13 @@ def main():
                         step_epoch=lr_decay_epoch,
                         step_factor=lr_decay, power=2)
         ])
+    
+    # optimizer
+    optimizer = opt.optimizer
+
+    optimizer_params = {'wd': opt.wd, 'momentum': opt.momentum, 'lr_scheduler': lr_scheduler}
+    if opt.dtype != 'float32':
+        optimizer_params['multi_precision'] = True
 
     if opt.mixup:
         train_metric = mx.metric.RMSE()
