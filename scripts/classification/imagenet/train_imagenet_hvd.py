@@ -632,6 +632,9 @@ def main():
 
             train_loss /= (batch_size * i)
 
+            if hvd.rank() == 0:
+                print("# batches: %d, i: %d" % (num_batches, i))
+
             if opt.trainer == 'ersgd' or opt.trainer == 'qsparselocalsgd' or opt.trainer == 'ersgd2' or opt.trainer == 'partiallocalsgd':
                 allreduce_for_val = True
             else:
