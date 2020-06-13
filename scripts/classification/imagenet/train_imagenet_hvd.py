@@ -191,45 +191,43 @@ def main():
         momentum_reset = True
         lr_opts = opt.lr_mode.split("_")
         lr_mode = lr_opts[0]
-        n_restarts = int(lr_opts[1])
-        first_warmup = 0
-        second_warmup = 0
+        initial_epochs = int(lr_opts[1])
+        epoch_mult = 1
         restart_decay = 1.0
+        total_epochs = 0
+        reset_momentum = 0
         if len(lr_opts) >= 3:
-            first_warmup = int(lr_opts[2])
+            epoch_mult = int(lr_opts[2])
         if len(lr_opts) >= 4:
-            second_warmup = int(lr_opts[3])
+            restart_decay = float(lr_opts[3])
         if len(lr_opts) >= 5:
-            restart_decay = float(lr_opts[4])
-        num_epochs_per_restart = opt.num_epochs // n_restarts
-        num_epochs_residual = opt.num_epochs - num_epochs_per_restart * n_restarts
-        if hvd.rank() == 0:
-            print("first warmup: %d, second warmup: %d, # restarts: %d, per restart: %d, decay: %f" \
-                    % (first_warmup,second_warmup,n_restarts,num_epochs_per_restart, restart_decay))
+            reset_momentum = float(lr_opts[4])
+        # if hvd.rank() == 0:
+        #     print("first warmup: %d, second warmup: %d, # restarts: %d, per restart: %d, decay: %f" \
+        #             % (first_warmup,second_warmup,n_restarts,num_epochs_per_restart, restart_decay))
         lr_schduler_list = [
-            LRScheduler('linear', base_lr=0, target_lr=opt.lr,
-                        nepochs=first_warmup, iters_per_epoch=num_batches),
             LRScheduler(lr_mode, base_lr=opt.lr, target_lr=0,
-                        nepochs=num_epochs_per_restart + num_epochs_residual - first_warmup,
+                        nepochs=initial_epochs,
                         iters_per_epoch=num_batches,
                         step_epoch=lr_decay_epoch,
                         step_factor=lr_decay, power=2)
             ]
-        momentum_reset_epochs = [num_epochs_per_restart + num_epochs_residual - first_warmup]
-        for restart in range(1, n_restarts):
+        momentum_reset_epochs = [initial_epochs]
+        total_epochs += initial_epochs
+        restart = 0
+        while total_epochs <opt.num_epochs:
+            restart += 1
             target_lr = opt.lr * (restart_decay**restart)
-            lr_schduler_list.append(
-                LRScheduler('linear', base_lr=0, target_lr=target_lr,
-                            nepochs=second_warmup, iters_per_epoch=num_batches)
-            )
+            current_epochs = initial_epochs * (epoch_mult**restart)
             lr_schduler_list.append(
                 LRScheduler(lr_mode, base_lr=target_lr, target_lr=0,
-                            nepochs=num_epochs_per_restart - second_warmup,
+                            nepochs=current_epochs,
                             iters_per_epoch=num_batches,
                             step_epoch=lr_decay_epoch,
                             step_factor=lr_decay, power=2)
             )
-            momentum_reset_epochs.append(momentum_reset_epochs[-1]+num_epochs_per_restart)
+            total_epochs += current_epochs
+            momentum_reset_epochs.append(total_epochs)
         if hvd.rank() == 0:
             print(momentum_reset_epochs)
         lr_scheduler = LRSequential(lr_schduler_list)
@@ -544,7 +542,7 @@ def main():
 
             if momentum_reset:
                 if epoch in momentum_reset_epochs:
-                    trainer.reset_states()
+                    trainer.reset_states(reset_momentum)
 
             for i, batch in enumerate(train_data):
                 

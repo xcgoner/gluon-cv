@@ -148,7 +148,7 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
                     self._params_cache.append([])
         self._params_cache_to_init = False
 
-    def reset_states(self):
+    def reset_states(self, reset_momentum):
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
                 if param.list_grad()[0].stype == 'default':
@@ -157,7 +157,11 @@ class ERSGDTrainerV2(mx.gluon.Trainer):
                         m, x_32 = self._updaters[0].states[i]
                     else:
                         m = self._updaters[0].states[i]
-                    m[:] = 0
+                    if reset_momentum > 0:
+                        m[:] = 0
+                    else:
+                        hvd.allreduce_(m, average=True, 
+                                       name='m'+str(i), priority=-i)
                     hvd.allreduce_(x, average=True, 
                                        name=str(i), priority=-i)
                     if self._multi_precision and x.dtype == np.float16:
