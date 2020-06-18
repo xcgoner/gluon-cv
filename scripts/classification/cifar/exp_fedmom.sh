@@ -6,7 +6,7 @@ for repeat in 1; do
         --model cifar_wideresnet40_8 --local-optimizer nag --global-optimizer nag \
         --local-lr 0.1 --global-lr 0.1 --lr-decay 0.2 --lr-decay-epoch 60,120,160 \
         --wd 0.0005 --num-epochs 200 --batch-size 16 --local-sgd-interval ${H} \
-        --mode hybrid -j 4
+        --mode hybrid -j 4 --nclasses 100
 
         sleep 10
         pkill -9 python3
@@ -16,7 +16,7 @@ for repeat in 1; do
         --model cifar_wideresnet40_8 --local-optimizer sgd --global-optimizer nag \
         --local-lr 0.1 --global-lr 0.1 --lr-decay 0.2 --lr-decay-epoch 60,120,160 \
         --wd 0.0005 --num-epochs 200 --batch-size 16 --local-sgd-interval ${H} \
-        --mode hybrid -j 4
+        --mode hybrid -j 4 --nclasses 100
 
         sleep 10
         pkill -9 python3
