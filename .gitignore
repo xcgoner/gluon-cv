@@ -116,4 +116,4 @@ ENV/
 *.jpg*
 *.jpeg*
 .idea/*
-*.sh
+# *.sh
