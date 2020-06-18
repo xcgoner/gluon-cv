@@ -207,7 +207,7 @@ class FedMomTrainer(mx.gluon.Trainer):
 
             # only for hvd
             global_updates[0].append((i, self._grads_cache[i], self._params_cache[i]))
-            self._params_cache[i]._fresh_grad = False
+            # self._params_cache[i]._fresh_grad = False
 
         if not (self._kvstore and self._update_on_kvstore):
             for updater, upd in zip(self._global_updaters, global_updates):
