@@ -41,7 +41,7 @@ class FedMomTrainer(mx.gluon.Trainer):
         # global_optimizer, global_optimizer_params for global optimizer
 
         super(FedMomTrainer, self).__init__(
-            params, local_optimizer, optimizer_params=optimizer_params, kvstore=None)
+            params, optimizer, optimizer_params=optimizer_params, kvstore=None)
 
         # initialize global optimizer
         global_optimizer_params = global_optimizer_params if global_optimizer_params else {}
