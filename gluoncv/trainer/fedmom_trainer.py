@@ -133,7 +133,7 @@ class FedMomTrainer(mx.gluon.Trainer):
             if param.grad_req != 'null':
                 allreduce_(self._grads_cache[i], average=True,
                            name=param.name, priority=-i)
-        self._global_update(ignore_stale_grad)
+        self._global_update()
 
         for i, param in enumerate(self._params):
             if param.grad_req != 'null':
