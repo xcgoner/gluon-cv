@@ -50,7 +50,7 @@ def parse_args():
                         help='weight decay rate. default is 0.0001.')
     parser.add_argument('--local-lr', type=float, default=0.1,
                         help='learning rate. default is 0.1.')
-    parser.add_argument('--global-lr', type=float, default=1.0,
+    parser.add_argument('--global-lr', type=float, default=0.1,
                         help='learning rate. default is 0.1.')
     parser.add_argument('--lr-decay', type=float, default=0.1,
                         help='decay rate of learning rate. default is 0.1.')
@@ -204,7 +204,7 @@ def main():
 
             if epoch == lr_decay_epoch[lr_decay_count]:
                 trainer.set_learning_rate(trainer.learning_rate*lr_decay)
-                # trainer.set_global_learning_rate(trainer.global_learning_rate*lr_decay)
+                trainer.set_global_learning_rate(trainer.global_learning_rate*lr_decay)
                 lr_decay_count += 1
 
             for i, batch in enumerate(train_data):
