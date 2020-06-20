@@ -21,3 +21,4 @@
 """CV trainer."""
 
 from .fedmom_trainer import FedMomTrainer
+from .doublemom_trainer import DoubleMomTrainer
