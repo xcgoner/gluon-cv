@@ -42,7 +42,9 @@ def parse_args():
                         help='optimizer')
     parser.add_argument('--local-sgd-interval', type=int, default=10,
                         help='interval for model synchronization')
-    parser.add_argument('--momentum', type=float, default=0.9,
+    parser.add_argument('--local-momentum', type=float, default=0.9,
+                        help='momentum value for optimizer, default is 0.9.')
+    parser.add_argument('--global-momentum', type=float, default=0.9,
                         help='momentum value for optimizer, default is 0.9.')
     parser.add_argument('--wd', type=float, default=0.0001,
                         help='weight decay rate. default is 0.0001.')
@@ -133,8 +135,8 @@ def main():
         transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])
     ])
 
-    local_optimizer_params = {'learning_rate': opt.local_lr, 'wd': opt.wd, 'momentum': opt.momentum}
-    global_optimizer_params = {'learning_rate': opt.global_lr, 'wd': opt.wd, 'momentum': opt.momentum}
+    local_optimizer_params = {'learning_rate': opt.local_lr, 'wd': opt.wd, 'momentum': opt.local_momentum}
+    global_optimizer_params = {'learning_rate': opt.global_lr, 'wd': opt.wd, 'momentum': opt.global_momentum}
 
     def test(ctx, val_data):
         metric = mx.metric.Accuracy()
