@@ -114,7 +114,7 @@ def main():
     # plot_path = opt.save_plot_dir
 
     logging.basicConfig(level=logging.INFO,
-                    filename="train_cifar{}_fedmom_{}_{}_{}_{}_{}_{}.log".format(classes, opt.model, opt.local_optimizer, opt.global_optimizer, opt.batch_size, opt.local_lr, opt.global_lr),
+                    filename="train_cifar{}_doublemom_{}_{}_{}_{}_{}_{}.log".format(classes, opt.model, opt.local_optimizer, opt.global_optimizer, opt.batch_size, opt.local_lr, opt.global_lr),
                     filemode='a')
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
