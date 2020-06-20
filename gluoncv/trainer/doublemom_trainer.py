@@ -101,7 +101,7 @@ class DoubleMomTrainer(mx.gluon.Trainer):
         # local sgd
         self._local_sgd_counter += 1
         if self._local_sgd_counter == self._local_sgd_interval:
-            self.global_step()
+            self.global_step(1. / self.learning_rate)
     
     def global_step(self, rescale_grad=1.0):
         """Makes one step of parameter update. Should be called after
