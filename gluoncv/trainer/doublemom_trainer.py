@@ -207,6 +207,12 @@ class DoubleMomTrainer(mx.gluon.Trainer):
                     i, g, w = zip(*upd)
                     updater(i, g, w)
 
+    def reset_momentum(self):
+        for i, param in enumerate(self._params):
+            if param.grad_req != 'null':
+                # mp later
+                self._updaters[0].states[i][:] = 0
+
     @property
     def global_learning_rate(self):
         if not isinstance(self._global_optimizer, opt.Optimizer):
