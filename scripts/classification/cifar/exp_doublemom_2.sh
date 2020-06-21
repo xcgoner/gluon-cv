@@ -2,7 +2,7 @@
 
 for repeat in 1; do
     for H in 10; do
-        for globallr in 0.05 0.03 0.01; do
+        for globallr in 0.03 0.01; do
             horovodrun -np 8 -H localhost:8 python3 train_cifar_hvd_doublemom.py \
             --model cifar_wideresnet40_8 --local-optimizer nag --global-optimizer nag \
             --local-lr 0.1 --global-lr ${globallr} --lr-decay 0.2 --lr-decay-epoch 30,60,80 \
