@@ -205,6 +205,8 @@ def main():
             if epoch == lr_decay_epoch[lr_decay_count]:
                 trainer.set_learning_rate(trainer.learning_rate*lr_decay)
                 trainer.set_global_learning_rate(trainer.global_learning_rate*lr_decay)
+                if opt.local_momentum > 0:
+                    trainer.reset_momentum()
                 lr_decay_count += 1
 
             for i, batch in enumerate(train_data):
