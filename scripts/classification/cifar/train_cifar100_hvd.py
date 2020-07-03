@@ -60,6 +60,8 @@ def parse_args():
                         help='resume training from the model')
     parser.add_argument('--save-plot-dir', type=str, default='.',
                         help='the path to save the history plot')
+    parser.add_argument('--test-throughput', action='store_true',
+                        help='whether test the throughput.')
     opt = parser.parse_args()
     return opt
 
@@ -216,7 +218,11 @@ def main():
 
             train_loss /= batch_size * num_batch
             name, acc = train_metric.get()
-            name, val_acc = test(ctx, val_data)
+
+            if opt.test_throughput:
+                val_acc = acc
+            else:
+                name, val_acc = test(ctx, val_data)
             
             train_history.update([1-acc, 1-val_acc])
             # train_history.plot(save_path='%s/%s_history.png'%(plot_path, model_name))
@@ -237,11 +243,15 @@ def main():
             #     logging.info('[Epoch %d] train=%f val=%f loss=%f time: %f' %
             #         (epoch, acc, val_acc, train_loss, toc-tic))
             if rank == 0:
-                logging.info('[Epoch %d] train=%f val=%f loss=%f comm=%.2f time: %f' %
-                    (epoch, acc, val_acc, train_loss, trainer._comm_counter/1e6, toc-tic))
+                if opt.test_throughput:
+                    logging.info('[Epoch %d] train=%f val=%f loss=%f comm=%.2f time: %f, throughput %f' %
+                    (epoch, acc, val_acc, train_loss, trainer._comm_counter/1e6, toc-tic, (i+1) * opt.batch_size * hvd.size() / (toc-tic) ))
+                else:
+                    logging.info('[Epoch %d] train=%f val=%f loss=%f comm=%.2f time: %f' %
+                        (epoch, acc, val_acc, train_loss, trainer._comm_counter/1e6, toc-tic))
 
-                if save_period and save_dir and (epoch + 1) % save_period == 0:
-                    net.save_parameters('%s/cifar10-%s-%d.params'%(save_dir, model_name, epoch))
+                    if save_period and save_dir and (epoch + 1) % save_period == 0:
+                        net.save_parameters('%s/cifar10-%s-%d.params'%(save_dir, model_name, epoch))
 
             trainer._comm_counter = 0.
 

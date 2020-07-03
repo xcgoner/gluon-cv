@@ -79,6 +79,8 @@ def parse_args():
     parser.add_argument('--local-sgd-interval', type=int, default=4,
                         help='interval for model synchronization')
     parser.add_argument('--warmup', type=float, default=1.0, help='Turn on learning rate warmup')
+    parser.add_argument('--test-throughput', action='store_true',
+                        help='whether test the throughput.')
     opt = parser.parse_args()
     return opt
 
@@ -255,9 +257,12 @@ def main():
             name, acc = train_metric.get()
             # name, val_acc = test(ctx, val_data)
 
-            trainer.pre_test()
-            name, val_acc = test(ctx, val_data)
-            trainer.post_test()
+            if opt.test_throughput:
+                val_acc = acc
+            else:
+                trainer.pre_test()
+                name, val_acc = test(ctx, val_data)
+                trainer.post_test()
             
             train_history.update([1-acc, 1-val_acc])
             # train_history.plot(save_path='%s/%s_history.png'%(plot_path, model_name))
@@ -275,11 +280,15 @@ def main():
                 # net.save_parameters('%s/%.4f-cifar-%s-%d-best.params'%(save_dir, best_val_score, model_name, epoch))
 
             if rank == 0:
-                logging.info('[Epoch %d] train=%f val=%f loss=%f comm=%.2f time: %f' %
-                    (epoch, acc, val_acc, train_loss, trainer._comm_counter/1e6, toc-tic))
+                if opt.test_throughput:
+                    logging.info('[Epoch %d] train=%f val=%f loss=%f comm=%.2f time: %f, throughput %f' %
+                    (epoch, acc, val_acc, train_loss, trainer._comm_counter/1e6, toc-tic, (i+1) * opt.batch_size * hvd.size() / (toc-tic) ))
+                else:
+                    logging.info('[Epoch %d] train=%f val=%f loss=%f comm=%.2f time: %f' %
+                        (epoch, acc, val_acc, train_loss, trainer._comm_counter/1e6, toc-tic))
 
-                if save_period and save_dir and (epoch + 1) % save_period == 0:
-                    net.save_parameters('%s/cifar10-%s-%d.params'%(save_dir, model_name, epoch))
+                    if save_period and save_dir and (epoch + 1) % save_period == 0:
+                        net.save_parameters('%s/cifar10-%s-%d.params'%(save_dir, model_name, epoch))
 
             trainer._comm_counter = 0.
 
