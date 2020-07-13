@@ -5,7 +5,7 @@ for repeat in 1
 do
     for lr in 0.05
     do
-        for batchsize in 16 32 64
+        for batchsize in 16 32 64 
         do
             HOROVOD_HIERARCHICAL_ALLREDUCE=1 horovodrun -np ${nworkers} -hostfile ${HOSTFILE} python3 train_cifar100_hvd.py \
             --model cifar_wideresnet40_8 --optimizer nag --lr ${lr} --lr-decay 0.2 \
