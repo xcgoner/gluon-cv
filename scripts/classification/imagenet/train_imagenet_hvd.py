@@ -232,6 +232,7 @@ def main():
             print(momentum_reset_epochs)
         lr_scheduler = LRSequential(lr_schduler_list)
     else:
+        momentum_reset = False
         lr_scheduler = LRSequential([
             LRScheduler('linear', base_lr=opt.warmup_lr, target_lr=opt.lr,
                         nepochs=warmup_epochs, iters_per_epoch=num_batches),
