@@ -15,7 +15,7 @@ from gluoncv.utils import makedirs, LRSequential, LRScheduler
 
 import horovod.mxnet as hvd
 from gluoncv.trainer.sgd_trainer import SGDTrainer
-from gluoncv.trainer.efsgd_trainer_v1 import EFSGDTrainerV1
+# from gluoncv.trainer.efsgd_trainer_v1 import EFSGDTrainerV1
 from gluoncv.trainer.qsparse_local_sgd_trainer_v1 import QSparseLocalSGDTrainerV1
 from gluoncv.trainer.ersgd_trainer_v2 import ERSGDTrainerV2
 from gluoncv.trainer.ersgd2_trainer_v2 import ERSGD2TrainerV2
