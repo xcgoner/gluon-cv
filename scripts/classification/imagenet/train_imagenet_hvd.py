@@ -34,7 +34,7 @@ np.random.seed(100)
 random.seed(100)
 mx.random.seed(10000)
 
-# os.environ['MXNET_SAFE_ACCUMULATION'] = '1'
+os.environ['MXNET_SAFE_ACCUMULATION'] = '1'
 
 # CLI
 def parse_args():
