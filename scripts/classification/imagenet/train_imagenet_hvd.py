@@ -1,5 +1,7 @@
 import argparse, time, logging, os, math, random
 
+os.environ['MXNET_SAFE_ACCUMULATION'] = '1'
+
 import numpy as np
 import mxnet as mx
 import gluoncv as gcv
@@ -33,8 +35,6 @@ os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
 np.random.seed(100)
 random.seed(100)
 mx.random.seed(10000)
-
-os.environ['MXNET_SAFE_ACCUMULATION'] = '1'
 
 # CLI
 def parse_args():
